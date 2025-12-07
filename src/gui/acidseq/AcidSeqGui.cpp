@@ -8,6 +8,33 @@ AcidSeqEditor::AcidSeqEditor(AcidSeq303& p)
     setWantsKeyboardFocus(true);
     addKeyListener(this);
     startTimerHz(30);
+
+    // Create pattern length buttons
+    lengthDecButton = std::make_unique<juce::TextButton>("<");
+    lengthIncButton = std::make_unique<juce::TextButton>(">");
+
+    addAndMakeVisible(*lengthDecButton);
+    addAndMakeVisible(*lengthIncButton);
+
+    // Position buttons (top right, next to length display)
+    lengthDecButton->setBounds(getWidth() - 100, 5, 20, 20);
+    lengthIncButton->setBounds(getWidth() - 30, 5, 20, 20);
+
+    // Set up button click handlers
+    lengthDecButton->onClick = [this] {
+        capturePatternState();
+        processorRef.setPatternLength(processorRef.getPatternLength() - 1);
+        repaint();
+    };
+
+    lengthIncButton->onClick = [this] {
+        capturePatternState();
+        processorRef.setPatternLength(processorRef.getPatternLength() + 1);
+        repaint();
+    };
+
+    // Capture initial pattern state for undo
+    capturePatternState();
 }
 
 AcidSeqEditor::~AcidSeqEditor()
@@ -144,11 +171,11 @@ void AcidSeqEditor::paint(juce::Graphics& g)
     g.setFont(18.0f);
     g.drawText("AcidSeq-303 Tracker", 0, 5, getWidth(), 25, juce::Justification::centred);
 
-    // Pattern length display
+    // Pattern length display (centered between arrow buttons)
     int pLen = processorRef.getPatternLength();
     g.setColour(juce::Colours::orange);
     g.setFont(13.0f);
-    g.drawText("Len: " + juce::String(pLen), getWidth() - 70, 8, 60, 20, juce::Justification::right);
+    g.drawText("Len: " + juce::String(pLen), getWidth() - 80, 8, 50, 20, juce::Justification::centred);
 
     // Header row
     int y = 35;
@@ -188,11 +215,11 @@ void AcidSeqEditor::paint(juce::Graphics& g)
     int helpY = getHeight() - 105;
     g.drawText("A-G=note  #=sharp  0-4=octave  X=accent  S=slide", 10, helpY, getWidth() - 20, 13, juce::Justification::left);
     helpY += 12;
-    g.drawText("Space=mute/unmute  Del=clear  Arrows=navigate", 10, helpY, getWidth() - 20, 13, juce::Justification::left);
+    g.drawText("M=mute/unmute  Del=clear  Arrows=navigate", 10, helpY, getWidth() - 20, 13, juce::Justification::left);
     helpY += 12;
     g.drawText("[/]=length  ,/.=transpose  {/}=cycle", 10, helpY, getWidth() - 20, 13, juce::Justification::left);
     helpY += 12;
-    g.drawText("R=random  T=scramble  Ctrl+C=clear all", 10, helpY, getWidth() - 20, 13, juce::Justification::left);
+    g.drawText("R=random  T=scramble  Ctrl+Z/Y=undo/redo", 10, helpY, getWidth() - 20, 13, juce::Justification::left);
     helpY += 12;
     g.setColour(juce::Colours::darkgrey);
     g.drawText("Pattern loops at step " + juce::String(pLen) + " | MIDI out", 10, helpY, getWidth() - 20, 13, juce::Justification::left);
@@ -211,45 +238,65 @@ bool AcidSeqEditor::keyPressed(const juce::KeyPress& key, juce::Component*)
 
     // Check for modifier keys
     bool ctrlOrCmd = key.getModifiers().isCommandDown() || key.getModifiers().isCtrlDown();
+    bool shiftPressed = key.getModifiers().isShiftDown();
 
+    // Undo (Ctrl+Z or Cmd+Z)
+    if (ctrlOrCmd && !shiftPressed && (key.getTextCharacter() == 'z' || key.getTextCharacter() == 'Z')) {
+        undo();
+    }
+    // Redo (Ctrl+Shift+Z or Ctrl+Y)
+    else if (ctrlOrCmd && ((shiftPressed && (key.getTextCharacter() == 'z' || key.getTextCharacter() == 'Z')) ||
+                           (!shiftPressed && (key.getTextCharacter() == 'y' || key.getTextCharacter() == 'Y')))) {
+        redo();
+    }
     // Clear all pattern (Ctrl+C or Cmd+C)
-    if (ctrlOrCmd && (key.getTextCharacter() == 'c' || key.getTextCharacter() == 'C')) {
+    else if (ctrlOrCmd && (key.getTextCharacter() == 'c' || key.getTextCharacter() == 'C')) {
+        capturePatternState();
         processorRef.clearPattern();
     }
     // Randomize pattern (R)
     else if (key.getTextCharacter() == 'r' || key.getTextCharacter() == 'R') {
+        capturePatternState();
         processorRef.randomizePattern();
     }
     // Scramble pattern (T for "toss")
     else if (key.getTextCharacter() == 't' || key.getTextCharacter() == 'T') {
+        capturePatternState();
         processorRef.scramblePattern();
     }
     // Transpose down (,)
     else if (key.getTextCharacter() == ',' || key.getTextCharacter() == '<') {
+        capturePatternState();
         processorRef.transposePattern(-1);
     }
     // Transpose up (.)
     else if (key.getTextCharacter() == '.' || key.getTextCharacter() == '>') {
+        capturePatternState();
         processorRef.transposePattern(1);
     }
     // Cycle left ({)
     else if (key.getTextCharacter() == '{') {
+        capturePatternState();
         processorRef.cyclePattern(-1);
     }
     // Cycle right (})
     else if (key.getTextCharacter() == '}') {
+        capturePatternState();
         processorRef.cyclePattern(1);
     }
     // Pattern length decrease ([)
     else if (key.getTextCharacter() == '[') {
+        capturePatternState();
         processorRef.setPatternLength(processorRef.getPatternLength() - 1);
     }
     // Pattern length increase (])
     else if (key.getTextCharacter() == ']') {
+        capturePatternState();
         processorRef.setPatternLength(processorRef.getPatternLength() + 1);
     }
-    // Toggle gate (mute/unmute) with space
-    else if (key.isKeyCode(juce::KeyPress::spaceKey)) {
+    // Toggle gate (mute/unmute) with 'm'
+    else if (!ctrlOrCmd && (key.getTextCharacter() == 'm' || key.getTextCharacter() == 'M')) {
+        capturePatternState();
         pattern->setGate(editStep, !pattern->getGate(editStep));
     }
     // Navigation
@@ -271,42 +318,50 @@ bool AcidSeqEditor::keyPressed(const juce::KeyPress& key, juce::Component*)
     }
     // Note entry (C, D, E, F, G, A, B) - only if not using Ctrl
     else if (!ctrlOrCmd && (key.getTextCharacter() == 'c' || key.getTextCharacter() == 'C')) {
+        capturePatternState();
         pattern->setKey(editStep, 0);
         pattern->setGate(editStep, true);
         editStep = (editStep + 1) % numSteps;
     }
     else if (key.getTextCharacter() == 'd' || key.getTextCharacter() == 'D') {
+        capturePatternState();
         pattern->setKey(editStep, 2);
         pattern->setGate(editStep, true);
         editStep = (editStep + 1) % numSteps;
     }
     else if (key.getTextCharacter() == 'e' || key.getTextCharacter() == 'E') {
+        capturePatternState();
         pattern->setKey(editStep, 4);
         pattern->setGate(editStep, true);
         editStep = (editStep + 1) % numSteps;
     }
     else if (key.getTextCharacter() == 'f' || key.getTextCharacter() == 'F') {
+        capturePatternState();
         pattern->setKey(editStep, 5);
         pattern->setGate(editStep, true);
         editStep = (editStep + 1) % numSteps;
     }
     else if (key.getTextCharacter() == 'g' || key.getTextCharacter() == 'G') {
+        capturePatternState();
         pattern->setKey(editStep, 7);
         pattern->setGate(editStep, true);
         editStep = (editStep + 1) % numSteps;
     }
     else if (!ctrlOrCmd && (key.getTextCharacter() == 'a' || key.getTextCharacter() == 'A')) {
+        capturePatternState();
         pattern->setKey(editStep, 9);
         pattern->setGate(editStep, true);
         editStep = (editStep + 1) % numSteps;
     }
     else if (key.getTextCharacter() == 'b' || key.getTextCharacter() == 'B') {
+        capturePatternState();
         pattern->setKey(editStep, 11);
         pattern->setGate(editStep, true);
         editStep = (editStep + 1) % numSteps;
     }
     // Sharp - adds 1 to current note (making it sharp)
     else if (key.getTextCharacter() == '#') {
+        capturePatternState();
         int currentKey = pattern->getKey(editStep);
         if (currentKey < 11) {
             pattern->setKey(editStep, currentKey + 1);
@@ -314,19 +369,23 @@ bool AcidSeqEditor::keyPressed(const juce::KeyPress& key, juce::Component*)
     }
     // Octave (0-4 for octaves 0-4)
     else if (key.getTextCharacter() >= '0' && key.getTextCharacter() <= '4') {
+        capturePatternState();
         int octave = key.getTextCharacter() - '0';
         pattern->setOctave(editStep, octave - 2);  // Offset by -2 since base is octave 2
     }
     // Toggle accent (X)
     else if (key.getTextCharacter() == 'x' || key.getTextCharacter() == 'X') {
+        capturePatternState();
         pattern->setAccent(editStep, !pattern->getAccent(editStep));
     }
     // Toggle slide (S)
     else if (!ctrlOrCmd && (key.getTextCharacter() == 's' || key.getTextCharacter() == 'S')) {
+        capturePatternState();
         pattern->setSlide(editStep, !pattern->getSlide(editStep));
     }
     // Delete/backspace clears the step completely
     else if (key.isKeyCode(juce::KeyPress::deleteKey) || key.isKeyCode(juce::KeyPress::backspaceKey)) {
+        capturePatternState();
         pattern->setGate(editStep, false);
         pattern->setAccent(editStep, false);
         pattern->setSlide(editStep, false);
@@ -351,4 +410,72 @@ void AcidSeqEditor::timerCallback()
         lastPlayingStep = currentStep;
         repaint();
     }
+}
+
+void AcidSeqEditor::capturePatternState()
+{
+    auto* pattern = processorRef.getSequencer()->getPattern(0);
+    if (!pattern) return;
+
+    PatternSnapshot snapshot;
+
+    // Copy all 16 notes
+    for (int i = 0; i < 16; ++i) {
+        auto* note = pattern->getNote(i);
+        snapshot.notes[i] = *note;
+    }
+
+    // Store pattern length
+    snapshot.patternLength = processorRef.getPatternLength();
+
+    // If we're in the middle of the undo stack (after undo), remove all redo states
+    if (undoStackPosition < (int)undoStack.size() - 1) {
+        undoStack.erase(undoStack.begin() + undoStackPosition + 1, undoStack.end());
+    }
+
+    // Add new snapshot
+    undoStack.push_back(snapshot);
+
+    // Limit stack size
+    if (undoStack.size() > maxUndoStates) {
+        undoStack.erase(undoStack.begin());
+    } else {
+        undoStackPosition++;
+    }
+}
+
+void AcidSeqEditor::restorePatternState(const PatternSnapshot& snapshot)
+{
+    auto* pattern = processorRef.getSequencer()->getPattern(0);
+    if (!pattern) return;
+
+    // Restore all 16 notes
+    for (int i = 0; i < 16; ++i) {
+        pattern->setKey(i, snapshot.notes[i].key);
+        pattern->setOctave(i, snapshot.notes[i].octave);
+        pattern->setAccent(i, snapshot.notes[i].accent);
+        pattern->setSlide(i, snapshot.notes[i].slide);
+        pattern->setGate(i, snapshot.notes[i].gate);
+    }
+
+    // Restore pattern length
+    processorRef.setPatternLength(snapshot.patternLength);
+}
+
+void AcidSeqEditor::undo()
+{
+    if (undoStackPosition <= 0) return;  // Nothing to undo
+
+    undoStackPosition--;
+    restorePatternState(undoStack[static_cast<size_t>(undoStackPosition)]);
+    repaint();
+}
+
+void AcidSeqEditor::redo()
+{
+    if (undoStackPosition >= (int)undoStack.size() - 1) return;  // Nothing to redo
+
+    undoStackPosition++;
+    restorePatternState(undoStack[static_cast<size_t>(undoStackPosition)]);
+    repaint();
 }
