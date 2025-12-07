@@ -135,9 +135,36 @@ clap_juce_extensions_plugin(
     CLAP_ID "co.midilab.${PROJECT_NAME}"
     CLAP_FEATURES "instrument" "synthesizer")
 
+### AcidSeq303 - MIDI Sequencer Plugin ###
+
+juce_add_plugin("AcidSeq303"
+    FORMATS ${PLUGIN_FORMATS}
+    PRODUCT_NAME "AcidSeq-303"
+    PLUGIN_NAME "AcidSeq-303"
+    COMPANY_NAME "LowenLabs"
+    COMPANY_WEBSITE "https://lowenlabs.org"
+    COMPANY_EMAIL "david@lowenlabs.org"
+    PLUGIN_MANUFACTURER_CODE LowL
+    PLUGIN_CODE AS33
+    IS_SYNTH FALSE
+    NEEDS_MIDI_INPUT FALSE
+    NEEDS_MIDI_OUTPUT TRUE
+    IS_MIDI_EFFECT TRUE
+    EDITOR_WANTS_KEYBOARD_FOCUS TRUE
+    LV2URI http://github.com/dfl/AcidSeq303
+    VST3_CATEGORIES "Tools"
+    AU_MAIN_TYPE "kAudioUnitType_MIDIProcessor"
+    COPY_PLUGIN_AFTER_BUILD FALSE)
+
+clap_juce_extensions_plugin(
+    TARGET "AcidSeq303"
+    CLAP_ID "co.lowenlabs.AcidSeq303"
+    CLAP_FEATURES "note-effect" "sequencer")
+
 # Set the C++ language standard requirenment for the "shared code" library target.
 # Setting this to PUBLIC ensures that all dependent targets will inherit the specified C++ standard.
 target_compile_features("${PROJECT_NAME}" PUBLIC cxx_std_17)
+target_compile_features("AcidSeq303" PUBLIC cxx_std_17)
 
 # Disable compiler extensions for the project targets (e.g. use -std=c++17 instead of -std=gnu++17).
 get_property(project_targets DIRECTORY "${PROJECT_SOURCE_DIR}" PROPERTY BUILDSYSTEM_TARGETS)
@@ -149,6 +176,7 @@ set_target_properties(${project_targets} PROPERTIES CXX_EXTENSIONS OFF)
 # NOTE: JuceHeader.h is generated when the target is built.
 
 juce_generate_juce_header("${PROJECT_NAME}")
+juce_generate_juce_header("AcidSeq303")
 
 # `target_compile_definitions` adds some preprocessor definitions to our target.
 # JUCE modules also make use of compile definitions to switch certain features on/off,
@@ -161,6 +189,12 @@ target_compile_definitions("${PROJECT_NAME}"
         # JUCE_WEB_BROWSER and JUCE_USE_CURL would be on by default, but you might not need them.
         JUCE_WEB_BROWSER=0  # If you remove this, add `NEEDS_WEB_BROWSER TRUE` to the `juce_add_plugin` call
         JUCE_USE_CURL=0     # If you remove this, add `NEEDS_CURL TRUE` to the `juce_add_plugin` call
+        JUCE_VST3_CAN_REPLACE_VST2=0)
+
+target_compile_definitions("AcidSeq303"
+    PUBLIC
+        JUCE_WEB_BROWSER=0
+        JUCE_USE_CURL=0
         JUCE_VST3_CAN_REPLACE_VST2=0)
 
 # If your target needs extra binary assets, you can add them here.
@@ -184,10 +218,29 @@ target_link_libraries("${PROJECT_NAME}"
         juce::juce_recommended_lto_flags
         juce::juce_recommended_warning_flags)
 
+target_link_libraries("AcidSeq303"
+    PRIVATE
+        juce::juce_audio_utils
+    PUBLIC
+        juce::juce_recommended_config_flags
+        juce::juce_recommended_lto_flags
+        juce::juce_recommended_warning_flags)
+
 # Add the subdirectory with source files.
 add_subdirectory(src)
 include_directories(src)
 
+# AcidSeq303 sources
+target_sources("AcidSeq303"
+    PRIVATE
+        src/dsp/open303/GlobalFunctions.cpp
+        src/dsp/open303/rosic_AcidPattern.cpp
+        src/dsp/open303/rosic_AcidSequencer.cpp
+        src/dsp/open303/rosic_RealFunctions.cpp
+        src/AcidSeq303.cpp
+        src/gui/acidseq/AcidSeqGui.cpp)
+
+target_include_directories("AcidSeq303" PRIVATE src)
 # add dsp source code for overdrive based on guitarml from BYOD
 add_subdirectory(src/dsp/guitarml-byod)
 
