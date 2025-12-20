@@ -278,6 +278,13 @@ void AcidSeq303::generateMidiForStep(juce::MidiBuffer& midi, int samplePosition,
     }
 }
 
+void AcidSeq303::queuePreviewNote(int noteNumber, int velocity, int durationMs)
+{
+    previewVelocity.store(velocity);
+    previewDurationSamples.store(static_cast<int>(sampleRate * durationMs / 1000.0));
+    previewNoteToPlay.store(noteNumber);  // Set last so other values are ready
+}
+
 void AcidSeq303::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midi)
 {
     juce::ScopedNoDenormals noDenormals;
@@ -285,6 +292,33 @@ void AcidSeq303::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer
     // Clear output buffer - we're a MIDI effect
     buffer.clear();
     midi.clear();
+
+    int numSamples = buffer.getNumSamples();
+
+    // Handle new preview note request (from GUI)
+    int noteToStart = previewNoteToPlay.exchange(-1);
+    if (noteToStart >= 0) {
+        // Turn off any currently playing preview note first
+        if (previewActiveNote >= 0) {
+            midi.addEvent(juce::MidiMessage::noteOff(1, previewActiveNote), 0);
+        }
+        // Start the new note
+        int velocity = previewVelocity.load();
+        midi.addEvent(juce::MidiMessage::noteOn(1, noteToStart, (juce::uint8)velocity), 1);
+        previewActiveNote = noteToStart;
+        previewNoteOffCountdown = previewDurationSamples.load();
+    }
+
+    // Handle preview note-off countdown
+    if (previewNoteOffCountdown > 0 && previewActiveNote >= 0) {
+        if (previewNoteOffCountdown <= numSamples) {
+            midi.addEvent(juce::MidiMessage::noteOff(1, previewActiveNote), previewNoteOffCountdown);
+            previewActiveNote = -1;
+            previewNoteOffCountdown = 0;
+        } else {
+            previewNoteOffCountdown -= numSamples;
+        }
+    }
 
     auto* playHead = getPlayHead();
     if (!playHead) return;
@@ -316,7 +350,6 @@ void AcidSeq303::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer
 
     // Calculate timing
     double samplesPerBeat = (sampleRate * 60.0) / bpm;
-    int numSamples = buffer.getNumSamples();
     int baseNote = 36; // C2
 
     // Process each sample to find step boundaries

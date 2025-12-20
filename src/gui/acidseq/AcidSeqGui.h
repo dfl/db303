@@ -17,17 +17,20 @@ public:
     void paint(juce::Graphics&) override;
     void resized() override;
 
-    // Keyboard input
-    bool keyPressed(const juce::KeyPress& key, juce::Component* originatingComponent) override;
+    // Mouse input
+    void mouseDown(const juce::MouseEvent& event) override;
+    void mouseWheelMove(const juce::MouseEvent& event, const juce::MouseWheelDetails& wheel) override;
 
 private:
+    // KeyListener interface
+    bool keyPressed(const juce::KeyPress& key, juce::Component* originatingComponent) override;
     void timerCallback() override;
-    void drawTrackerRow(juce::Graphics& g, int step, int y, bool isSelected, bool isPlaying);
+    void drawTrackerRow(juce::Graphics& g, int step, int y, bool isCursor, bool isPlaying, bool isInSelection);
     juce::String getNoteNameForKey(int key);
 
     // Undo/redo system
     struct PatternSnapshot {
-        rosic::AcidNote notes[16];
+        rosic::AcidNote notes[32];
         int patternLength;
     };
 
@@ -42,15 +45,41 @@ private:
 
     AcidSeq303& processorRef;
 
+    // View mode
+    bool pianoRollMode = false;  // false = tracker, true = piano roll
+    void drawPianoRollView(juce::Graphics& g);
+    void handlePianoRollClick(int x, int y);
+
     // Tracker state
-    static constexpr int numSteps = 16;
+    static constexpr int numSteps = 32;
+    static constexpr int maxVisibleRows = 16;  // Maximum rows visible at once
+    int scrollOffset = 0;       // First visible row (for scrolling)
     int editStep = 0;           // Currently selected step for editing
     int editColumn = 0;         // 0=note, 1=octave, 2=accent, 3=slide, 4=gate
     int lastPlayingStep = -1;
 
-    // Pattern length buttons
-    std::unique_ptr<juce::TextButton> lengthDecButton;
-    std::unique_ptr<juce::TextButton> lengthIncButton;
+    // Range selection
+    int selectionAnchor = -1;   // Start of selection (-1 = no selection, just cursor)
+    int getSelectionStart() const { return selectionAnchor < 0 ? editStep : juce::jmin(selectionAnchor, editStep); }
+    int getSelectionEnd() const { return selectionAnchor < 0 ? editStep : juce::jmax(selectionAnchor, editStep); }
+    bool hasSelection() const { return selectionAnchor >= 0 && selectionAnchor != editStep; }
+    void clearSelection() { selectionAnchor = -1; }
+
+    // Step preview
+    void triggerPreviewNote(int step);
+
+    // Pattern length text editor
+    std::unique_ptr<juce::Label> lengthLabel;
+    std::unique_ptr<juce::Label> lengthEditor;
+
+    // D-pad buttons for transpose/shift
+    std::unique_ptr<juce::TextButton> transposeUpBtn;
+    std::unique_ptr<juce::TextButton> transposeDownBtn;
+    std::unique_ptr<juce::TextButton> shiftLeftBtn;
+    std::unique_ptr<juce::TextButton> shiftRightBtn;
+
+    // View mode toggle
+    std::unique_ptr<juce::TextButton> viewToggleBtn;
 
     // Layout constants
     static constexpr int rowHeight = 22;

@@ -48,9 +48,9 @@ public:
     rosic::AcidSequencer* getSequencer() { return &sequencer; }
     int getCurrentStep() const { return currentStep; }
 
-    // Pattern length for polyrhythms (1-16)
+    // Pattern length for polyrhythms (1-32)
     int getPatternLength() const { return patternLength; }
-    void setPatternLength(int length) { patternLength = juce::jlimit(1, 16, length); }
+    void setPatternLength(int length) { patternLength = juce::jlimit(1, 32, length); }
 
     // Pattern operations
     void clearPattern();
@@ -58,6 +58,10 @@ public:
     void scramblePattern();      // Shuffle existing notes randomly
     void transposePattern(int semitones);  // Move all notes up/down
     void cyclePattern(int steps);  // Rotate pattern in time (positive = right)
+
+    // Preview note (for GUI feedback when editing)
+    void queuePreviewNote(int noteNumber, int velocity = 100, int durationMs = 150);
+    int getBaseNote() const { return 36; }  // C2 base note
 
 private:
     void generateMidiForStep(juce::MidiBuffer& midi, int samplePosition,
@@ -74,8 +78,15 @@ private:
     bool lastNoteSlide = false; // Was last note a slide?
 
     // Pattern settings
-    int patternLength = 16;     // Length for polyrhythms (1-16)
+    int patternLength = 16;     // Length for polyrhythms (1-32)
     juce::Random random;        // For randomization
+
+    // Preview note state
+    std::atomic<int> previewNoteToPlay{-1};      // Note number to start playing (-1 = none)
+    std::atomic<int> previewVelocity{100};
+    std::atomic<int> previewDurationSamples{0};
+    int previewActiveNote = -1;                   // Currently playing preview note
+    int previewNoteOffCountdown = 0;              // Samples until note-off
 
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(AcidSeq303)
