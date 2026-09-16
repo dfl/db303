@@ -42,6 +42,9 @@ enum Open303Parameters
   OVERDRIVE_LEVEL,
   OVERDRIVE_DRY_WET,
   OVERDRIVE_MODEL_INDEX,
+  // Sequencer gate timing (Schmidt µPD650C-133 analysis)
+  GATE_DUTY,
+  HW_TIMING,
 
   OPEN303_NUM_PARAMETERS
 };
@@ -233,6 +236,9 @@ private:
     std::atomic<float>* seqSyncMode = nullptr;
     std::atomic<float>* seqStartMode = nullptr;
     std::atomic<float>* seqTempo = nullptr;
+    // Sequencer gate timing
+    std::atomic<float>* gateDuty = nullptr;
+    std::atomic<float>* hwTiming = nullptr;
 
     double decayMin = 200;
     double decayMax = 2000;
