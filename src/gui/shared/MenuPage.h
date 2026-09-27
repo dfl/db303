@@ -96,6 +96,9 @@ public:
 
         popupLookAndFeel.setColour(juce::PopupMenu::backgroundColourId, juce::Colour(0xff333f26));
 
+        for (int i = 0; i < pageList.size(); ++i)
+            pageCursor.add(0);
+
         selectPage(0);
     }
 
@@ -110,8 +113,9 @@ public:
     {
         if (idx < 0 || idx >= pageList.size())
             return;
+        pageCursor.getReference(currentPage) = cursor;
         currentPage = idx;
-        cursor = 0;
+        cursor = pageCursor.getReference(idx);
         updateDisplay();
         notifyCurrentItemChanged();
     }
@@ -130,6 +134,7 @@ public:
         }
 
         cursor = juce::jlimit(0, pageList.getReference(currentPage).items.size() - 1, cursor + delta);
+        pageCursor.getReference(currentPage) = cursor;
         updateDisplay();
         notifyCurrentItemChanged();
     }
@@ -346,6 +351,8 @@ private:
 
     juce::String displayValue(const Item& item)
     {
+        if (auto* p = dynamic_cast<juce::AudioParameterChoice*>(valueTreeState.getParameter(item.id)))
+            return p->choices[juce::jlimit(0, p->choices.size() - 1, p->getIndex())];
         if (! item.valueNames.isEmpty())
             if (auto* p = intParam(item.id))
                 return item.valueNames[juce::jlimit(0, item.valueNames.size() - 1, p->get())];
@@ -479,6 +486,7 @@ private:
         }
 
         cursor = juce::jlimit(0, pageList.getReference(currentPage).items.size() - 1, pick);
+        pageCursor.getReference(currentPage) = cursor;
         updateDisplay();
         notifyCurrentItemChanged();
     }
@@ -530,32 +538,27 @@ public:
             "Soft attack", "Slide time", "Square driver",
             "LFO rate", "LFO depth", "LFO wave", "LFO dest"
         };
+
+        mod.items.add(Item { "filterType",  "Filter Model",     Type::value, {}, 1.0f });
+        mod.items.add(Item { "filterDrive", "Filter Drive",     Type::value, {}, 0.0f });
+        mod.items.add(Item { "bassComp",    "Filter Bass Comp", Type::value, {}, 0.0f });
+        mod.items.add(Item { "filterFm",    "Filter FM",        Type::value, {}, 0.0f });
+
         static constexpr uint8_t numModItems = 10;
         for (uint8_t i = 0; i < numModItems; ++i)
             mod.items.add(Item { modItemIDs[i].toString(), modItemLabels[i], Type::value, {}, 0.0f });
 
         for (auto& it : mod.items)
-        {
-            if (it.id == "lfoWaveform")
-                it.valueNames = juce::StringArray { "Triangle", "Saw Up", "Saw Down", "Square", "Random", "Pink Noise" };
-            else if (it.id == "lfoDestination")
-                it.valueNames = juce::StringArray { "Cutoff", "Volume", "Pitch" };
-        }
+            if (it.id == "lfoWaveform" || it.id == "lfoDestination")
+                it.step = 1.0f;   // Choice params step one index at a time
+
         pages.add(mod);
 
         Page seq; seq.title = "Sequencer";
         seq.items.add(Item { "seqLength",    "Length",     Type::value, {}, 0.0f });
         seq.items.add(Item { "seqTempo",     "Tempo",      Type::value, {}, 0.0f });
-        seq.items.add(Item { "seqSyncMode",  "Sync Mode",  Type::value, {}, 0.0f });
-        seq.items.add(Item { "seqStartMode", "Start Mode", Type::value, {}, 0.0f });
-
-        for (auto& it : seq.items)
-        {
-            if (it.id == "seqSyncMode")
-                it.valueNames = juce::StringArray { "Internal", "Host", "Midi Clock" };
-            else if (it.id == "seqStartMode")
-                it.valueNames = juce::StringArray { "Transport", "Note Trigger" };
-        }
+        seq.items.add(Item { "seqSyncMode",  "Sync Mode",  Type::value, {}, 1.0f });
+        seq.items.add(Item { "seqStartMode", "Start Mode", Type::value, {}, 1.0f });
         pages.add(seq);
 
         return pages;
@@ -568,6 +571,7 @@ private:
     AssignableSlot assignableSlots[numAssignableSlots];
     int currentPage = 0;
     int cursor = 0;
+    juce::Array<int> pageCursor;
     int modPageIndex = -1;
 
     juce::Font customFont;
