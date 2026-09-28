@@ -28,7 +28,19 @@ Open303::Open303()
   currentVel       =     0;
   noteOffCountDown =     0;
   slideToNextNote  = false;
+  hammerToNextNote = false;
   idle             = true;
+  currentNoteMuted = false;
+  muteMorph        =   0.0;   // start unmuted
+  muteMorphCoeff   =   0.0;   // will be set in setSampleRate
+
+  // TT-303 mute parameters (conservative defaults)
+  muteGateFactor   =     0.5;   // 50% gate length
+  muteLevelFactor  =     0.6;   // 60% volume
+  muteCutoffFactor =     0.7;   // 70% cutoff
+  muteEnvFactor    =     0.7;   // 70% envelope mod
+
+  currentFilterType = FILTER_TEEBEE;
 
   // LFO defaults
   lfoDepth         =    0.0;
@@ -96,6 +108,10 @@ void Open303::setSampleRate(double newSampleRate)
   sequencer.setSampleRate(              newSampleRate);
   lfo.setSampleRate(                    newSampleRate);
 
+  // Mute morph smoother: ~2ms one-pole so mute level/cutoff/env changes ramp
+  // instead of stepping (avoids clicks at legato hammer/slide boundaries)
+  muteMorphCoeff = exp(-1.0 / (0.002 * newSampleRate));
+
   highpass2.setSampleRate     (         newSampleRate);
   allpass.setSampleRate       (         newSampleRate);
   notch.setSampleRate         (         newSampleRate);
@@ -104,6 +120,7 @@ void Open303::setSampleRate(double newSampleRate)
 
   oscillator.setSampleRate    (  oversampling*newSampleRate);
   filter.setSampleRate        (  oversampling*newSampleRate);
+  diodeFilter.setSampleRate   (  oversampling*newSampleRate);
   sampleRate = newSampleRate;
 }
 
@@ -111,6 +128,58 @@ void Open303::setCutoff(double newCutoff)
 {
   cutoff = newCutoff;
   calculateEnvModScalerAndOffset();
+}
+
+void Open303::setResonance(double newResonance)
+{
+  // newResonance is a percentage (0..100). The TeeBee filter takes percent
+  // directly and skews/normalizes it internally; the diode filter expects a
+  // normalized, pre-skewed 0..1 value (K = 17*resonance, self-oscillation ~17).
+  double normalizedResonance = 0.01 * newResonance;               // 0..100 -> 0..1
+
+  // Match the TeeBee's resonance skew so the knob tracks the same curve on both
+  // models: use the TeeBee's saturating-exponential map (see
+  // TeeBeeFilter::setResonance) instead of a cubic, so the resonance comes up on
+  // the same curve rather than staying flat then spiking. At knob = 100 this
+  // reaches 1.0, driving the diode's K to its self-oscillation point (17).
+  // The Diode Octave model is pulled back below self-oscillation to match the
+  // TeeBee - that ceiling lives in DiodeLadderFilter (octave-mode only), so
+  // plain Diode still self-oscillates at full knob.
+  double skewedResonance = (1.0 - exp(-3.0*normalizedResonance)) / (1.0 - exp(-3.0));
+
+  filter.setResonance(newResonance);
+  diodeFilter.setResonance(skewedResonance);
+}
+
+void Open303::setFilterType(FilterType newType)
+{
+  currentFilterType = newType;
+
+  // Octave mode (steeper 1st pole) applies only to the plain-LP Diode Octave
+  // model. The BP/HP response modes are plain-diode only.
+  diodeFilter.setOctaveMode(newType == FILTER_DIODE_OCTAVE);
+
+  int response = DiodeLadderFilter::RESPONSE_LP;
+  if(newType == FILTER_DIODE_BP)
+    response = DiodeLadderFilter::RESPONSE_BP;
+  else if(newType == FILTER_DIODE_HP)
+    response = DiodeLadderFilter::RESPONSE_HP;
+  diodeFilter.setResponseMode(response);
+}
+
+void Open303::setFilterDrive(double newDriveDb)
+{
+  // The diode ladder saturates its input (see DiodeLadderFilter::getSample),
+  // so drive changes its timbre. TeeBee is linear in TB_303 mode - the call
+  // is harmless there but has no audible effect.
+  filter.setDrive(newDriveDb);
+  diodeFilter.setInputDrive(newDriveDb);
+}
+
+void Open303::setPassbandCompensation(double newCompensation)
+{
+  // Diode-ladder-only: TeeBee has no passband compensation.
+  diodeFilter.setPassbandCompensation(newCompensation);
 }
 
 void Open303::setEnvMod(double newEnvMod)
@@ -223,6 +292,7 @@ void Open303::triggerNote(int noteNumber, bool hasAccent)
   {
     oscillator.resetPhase();
     filter.reset();
+    diodeFilter.reset();
     highpass1.reset();
     highpass2.reset();
     allpass.reset();
@@ -255,6 +325,29 @@ void Open303::slideToNote(int noteNumber, bool hasAccent)
 {
   oscFreq = pitchToFreq(noteNumber, tuning);
 
+  if( hasAccent )
+  {
+    accentGain = accent;
+    setMainEnvDecay(accentDecay);
+    ampEnv.setRelease(accentAmpRelease);
+  }
+  else
+  {
+    accentGain = 0.0;
+    setMainEnvDecay(normalDecay);
+    ampEnv.setRelease(normalAmpRelease);
+  }
+  idle = false;
+}
+
+void Open303::hammerToNote(int noteNumber, bool hasAccent)
+{
+  // Hammer is like slide but with instant pitch change (no portamento)
+  // Set frequency AND immediately set slew limiter state to avoid any glide
+  oscFreq = pitchToFreq(noteNumber, tuning);
+  pitchSlewLimiter.setState(oscFreq);  // Instant pitch change, no slew
+
+  // Handle accent (same as slideToNote)
   if( hasAccent )
   {
     accentGain = accent;
