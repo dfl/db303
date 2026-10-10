@@ -499,13 +499,13 @@ void JC303::parameterChanged(const juce::String& parameterID, float newValue)
     else if (parameterID == "overdriveModelIndex") {
         setParameter(OVERDRIVE_MODEL_INDEX, newValue);
     }
-    else if (parameterID == "filterType") {
+    else if (parameterID == "filterType" && *switchModState) {
         open303Core.setFilterType(static_cast<FilterType>((int) newValue));
     }
     else if (parameterID == "filterDrive" && *switchModState) {
         setParameter(FILTER_DRIVE, newValue);
     }
-    else if (parameterID == "bassComp") {
+    else if (parameterID == "bassComp" && *switchModState) {
         setParameter(BASS_COMP, newValue);
     }
     else if (parameterID == "filterFm" && *switchModState) {
@@ -760,10 +760,6 @@ void JC303::setParameter (Open303Parameters index, float value)
 // toogle/restore 303 original and mod modes
 void JC303::setDevilMod(bool mode)
 {
-    // filter model and HP/BP morph are available with mods on or off
-    open303Core.setFilterType(static_cast<FilterType>((int) *filterType));
-    setParameter(BASS_COMP, *bassComp);
-
     if (mode == true) {
         decayMin = 30.0;
         decayMax = 3000.0;
@@ -775,7 +771,9 @@ void JC303::setDevilMod(bool mode)
         setParameter(SOFT_ATTACK, *softAttack);
         setParameter(SLIDE_TIME, *slideTime);
         setParameter(TANH_SHAPER_DRIVE, *sqrDriver);
+        open303Core.setFilterType(static_cast<FilterType>((int) *filterType));
         setParameter(FILTER_DRIVE, *filterDrive);
+        setParameter(BASS_COMP, *bassComp);
         setParameter(FILTER_FM, *filterFm);
         setParameter(SUB_OSC_GAIN, *subOscGain);
         setParameter(SUB_OSC_BLEND, *subOscBlend);
@@ -788,8 +786,7 @@ void JC303::setDevilMod(bool mode)
         open303Core.setLfoOn(true);
         open303Core.setCircuitPulseShape(true);
     } else if (mode == false) {
-        setParameter(FILTER_DRIVE, 0.0f);
-        setParameter(FILTER_FM, 0.0f);
+        open303Core.setFilterType(FILTER_TEEBEE);
         open303Core.setLfoOn(false);   // hard-gates LFO; its internal values are never read while off
         open303Core.setCircuitPulseShape(false);   // flat-topped square; the pitch-tracked pulse width still applies
         decayMin = 200.0;
