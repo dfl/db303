@@ -24,8 +24,8 @@ private:
 // Generic LCD-style menu page component, shared across GUI themes.
 // Pure view/controller: reads and writes parameters through the value tree state.
 // Item types:
-//   select      - prev/next changes the selection (triggers the param), inc/dec does nothing
-//   value       - prev/next moves the cursor between items, inc/dec edits the current item's param
+//   select      - prev/next moves the cursor between items, inc/dec and the knob change the selection
+//   value       - prev/next moves the cursor between items, inc/dec and the knob edit the current item's param
 //   placeholder - inert row ("Soon to be implemented")
 class MenuPage : public juce::Component,
                  public juce::AudioProcessorValueTreeState::Listener
@@ -48,6 +48,7 @@ public:
         int shownUntilIndex = 1 << 30; // item is skipped while hiddenWhenId's choice index is above this
         juce::String altLabel;         // shown instead of label while hiddenWhenId's choice index equals altLabelIndex
         int altLabelIndex = -1;
+        bool showParamText = false;    // value type only: show the parameter's own text (units) instead of 0..100
     };
 
     struct Page
@@ -137,12 +138,6 @@ public:
         if (item.type == Type::placeholder)
             return;
 
-        if (item.type == Type::select)
-        {
-            changeSelection(delta);
-            return;
-        }
-
         const int next = nextVisibleIndex(cursor, delta < 0 ? -1 : 1);
         if (next == cursor)
             return;
@@ -152,10 +147,15 @@ public:
         notifyCurrentItemChanged();
     }
 
-    // Called by the theme's dec/inc buttons. No-op on select/placeholder pages.
+    // Called by the theme's dec/inc buttons. No-op on placeholder items.
     void valueStep(float direction)
     {
         auto& item = currentItem();
+        if (item.type == Type::select)
+        {
+            changeSelection(direction < 0.0f ? -1 : 1);
+            return;
+        }
         if (item.type != Type::value || ! isItemEnabled(item))
             return;
         changeValue(direction);
@@ -166,6 +166,17 @@ public:
     void setValue(float percentage)
     {
         auto& item = currentItem();
+        if (item.type == Type::select)
+        {
+            if (auto* p = intParam(item.id))
+            {
+                const int index = p->getRange().getStart()
+                                  + juce::roundToInt(percentage / 100.0f * (float) p->getRange().getLength());
+                if (index != p->get())
+                    changeSelection(index - p->get());
+            }
+            return;
+        }
         if (item.type != Type::value || ! isItemEnabled(item))
             return;
         auto* param = valueTreeState.getParameter(item.id);
@@ -178,7 +189,7 @@ public:
     }
 
     // Fired when the cursor/page changes. Carries the current item's value in the
-    // knob's 0..100 scale, or -1 when the knob has nothing to edit (select/placeholder).
+    // knob's 0..100 scale, or -1 when the knob has nothing to edit (placeholder).
     std::function<void(float)> onCurrentItemChanged;
 
     // ---- assignable macro knobs ----
@@ -355,7 +366,7 @@ private:
         if (!onCurrentItemChanged)
             return;
         float v = -1.0f;
-        if (currentItem().type == Type::value)
+        if (currentItem().type != Type::placeholder)
             if (auto* param = valueTreeState.getParameter(currentItem().id))
                 v = param->getValue() * 100.0f;
         onCurrentItemChanged(v);
@@ -447,6 +458,9 @@ private:
         if (! item.valueNames.isEmpty())
             if (auto* p = intParam(item.id))
                 return item.valueNames[juce::jlimit(0, item.valueNames.size() - 1, p->get())];
+        if (item.showParamText)
+            if (auto* p = valueTreeState.getParameter(item.id))
+                return p->getCurrentValueAsText();
         return valueString(valueTreeState.getParameter(item.id));
     }
 
@@ -606,6 +620,9 @@ public:
 
         Page ovd; ovd.title = "Overdrive";
         ovd.items.add(Item { "overdriveModelIndex", "Model", Type::select, overdriveModelNames, 0.0f });
+        Item disperse { "overdriveDisperse", "Disperse", Type::value, {}, 0.0f };   // allpass corner before the overdrive
+        disperse.showParamText = true;
+        ovd.items.add(disperse);
         pages.add(ovd);
 
         Page mod; mod.title = "Modifications";
