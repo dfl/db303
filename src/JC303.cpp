@@ -132,6 +132,19 @@ JC303::JC303()
             std::make_unique<juce::AudioParameterBool> ("switchOverdriveState",
                                                         "Switch Overdrive Mod",
                                                         false),
+            std::make_unique<juce::AudioParameterFloat> ("overdriveDisperse",
+                                                        "Overdrive Disperse",
+                                                        juce::NormalisableRange<float> (0.0f, 1.0f),
+                                                        0.0f,   // allpass before the overdrive: 0 = off
+                                                        juce::AudioParameterFloatAttributes().withStringFromValueFunction (
+                                                            [] (float v, int) -> juce::String
+                                                            {
+                                                                return v <= 0.0f ? juce::String ("Off")
+                                                                                 : juce::String (juce::roundToInt (Disperser::cornerFor (v))) + " Hz";
+                                                            })),
+            std::make_unique<juce::AudioParameterBool> ("overdrivePreVca",
+                                                        "Overdrive Pre-VCA",
+                                                        false),
             // filter model selection
             std::make_unique<juce::AudioParameterChoice> ("filterType",
                                                         "Filter Model",
@@ -271,6 +284,7 @@ JC303::JC303()
     switchOverdriveState = parameters.getRawParameterValue("switchOverdriveState");
     overdriveLevel = parameters.getRawParameterValue("overdriveLevel");
     overdriveDryWet = parameters.getRawParameterValue("overdriveDryWet");
+    overdrivePreVca = parameters.getRawParameterValue("overdrivePreVca");
     // filter model
     filterType = parameters.getRawParameterValue("filterType");
     filterDrive = parameters.getRawParameterValue("filterDrive");
@@ -314,6 +328,7 @@ JC303::JC303()
     setParameter(OVERDRIVE_LEVEL, *overdriveLevel);
     setParameter(OVERDRIVE_DRY_WET, *overdriveDryWet);
     setParameter(OVERDRIVE_MODEL_INDEX, *overdriveModelIndex);
+    setParameter(OVERDRIVE_DISPERSE, *parameters.getRawParameterValue("overdriveDisperse"));
 
     // presets and overdrive models
     setupDataDirectories();
@@ -347,6 +362,7 @@ JC303::JC303()
     parameters.addParameterListener("overdriveLevel", this);
     parameters.addParameterListener("overdriveDryWet", this);
     parameters.addParameterListener("overdriveModelIndex", this);
+    parameters.addParameterListener("overdriveDisperse", this);
     parameters.addParameterListener("switchOverdriveState", this);
     parameters.addParameterListener("filterType", this);
     parameters.addParameterListener("filterDrive", this);
@@ -417,6 +433,7 @@ JC303::~JC303()
     parameters.removeParameterListener("overdriveLevel", this);
     parameters.removeParameterListener("overdriveDryWet", this);
     parameters.removeParameterListener("overdriveModelIndex", this);
+    parameters.removeParameterListener("overdriveDisperse", this);
     parameters.removeParameterListener("switchOverdriveState", this);
     parameters.removeParameterListener("filterType", this);
     parameters.removeParameterListener("filterDrive", this);
@@ -514,6 +531,9 @@ void JC303::parameterChanged(const juce::String& parameterID, float newValue)
     }
     else if (parameterID == "overdriveModelIndex") {
         setParameter(OVERDRIVE_MODEL_INDEX, newValue);
+    }
+    else if (parameterID == "overdriveDisperse") {
+        setParameter(OVERDRIVE_DISPERSE, newValue);
     }
     else if (parameterID == "filterType" && *switchModState) {
         open303Core.setFilterType(static_cast<FilterType>((int) newValue));
@@ -684,14 +704,21 @@ void JC303::setParameter (Open303Parameters index, float value)
     case OVERDRIVE_LEVEL:
         // conditioned param or gain if model is not conditioned
         guitarML.setDriver(value);
+        preVcaOverdrive.amp.setDriver(value);
         break;
     case OVERDRIVE_DRY_WET:
         overdriveMix.setWetMixProportion(value);
+        preVcaOverdrive.mix.setWetMixProportion(value);
         break;
     case OVERDRIVE_MODEL_INDEX:
         // load new model
         //guitarML.loadModel(value);
         guitarML.loadUserModel(value);
+        preVcaOverdrive.amp.loadUserModel(value);
+        break;
+    case OVERDRIVE_DISPERSE:
+        overdriveDisperser.setAmount(value);
+        preVcaOverdrive.disperser.setAmount(value);
         break;
 
     //
@@ -905,6 +932,8 @@ void JC303::prepareToPlay (double sampleRate, int samplesPerBlock)
     // init overdrive dry/wet processor
     overdriveMix.prepare ({ sampleRate, (uint32_t) samplesPerBlock, 2 });
     overdriveMix.setMixingRule (juce::dsp::DryWetMixingRule::sin3dB);
+    preVcaOverdrive.prepare (sampleRate);
+    overdriveDisperser.prepare (sampleRate);
 
     // ── Sequencer ─────────────────────────────────────────────────────────────
     // 960 PPQN is the JUCE default and is compatible with all major DAWs.
@@ -947,8 +976,17 @@ bool JC303::isBusesLayoutSupported (const BusesLayout& layouts) const
 void JC303::render303(juce::AudioBuffer<float>& buffer, int beginSample, int endSample)
 {
     auto* monoChannel = buffer.getWritePointer(0);
-    for (auto sample = beginSample; sample < endSample; ++sample)
-        monoChannel[sample] = (float) open303Core.getSample();
+    const bool preVca = *switchOverdriveState && *overdrivePreVca;
+    open303Core.setPreVcaInsert(preVca ? &preVcaOverdrive : nullptr);
+
+    double block[Open303::maxBlockSize];
+    for (auto sample = beginSample; sample < endSample; sample += Open303::maxBlockSize)
+    {
+        const int n = juce::jmin(Open303::maxBlockSize, endSample - sample);
+        open303Core.renderBlock(block, n);
+        for (int i = 0; i < n; ++i)
+            monoChannel[sample + i] = (float) block[i];
+    }
 }
 
 void JC303::renderMidi (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
@@ -1244,8 +1282,9 @@ void JC303::processBlock (juce::AudioBuffer<float>& buffer,
     // sequencer tick + MIDI handling + sample-accurate audio render
     renderMidi (buffer, midiMessages);
 
-    // GuitarML overdrive
-    if (*switchOverdriveState) {
+    // GuitarML overdrive (pre-VCA mode runs inside render303)
+    if (*switchOverdriveState && ! *overdrivePreVca) {
+        overdriveDisperser.process(buffer.getWritePointer(0), numSamples);
         overdriveMix.pushDrySamples(buffer);
         guitarML.processAudioBlock(buffer);
         overdriveMix.mixWetSamples(buffer);
@@ -1272,6 +1311,7 @@ int JC303::loadOverdriveTones()
             modelListNames.add(fileName);
         }
         guitarML.setModelList(modelFileList, modelListNames);
+        preVcaOverdrive.amp.setModelList(modelFileList, modelListNames);
         return guitarML.getModelListSize();
     }
     return 1; // to avoid -1 at overdrive indexes startup
