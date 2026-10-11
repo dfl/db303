@@ -135,7 +135,7 @@ JC303::JC303()
             // filter model selection
             std::make_unique<juce::AudioParameterChoice> ("filterType",
                                                         "Filter Model",
-                                                        juce::StringArray{ "TeeBee", "Diode" },
+                                                        juce::StringArray{ "TeeBee", "Spicy" },
                                                         FILTER_TEEBEE),
             std::make_unique<juce::AudioParameterFloat> ("filterDrive",
                                                         "Filter Saturation",
