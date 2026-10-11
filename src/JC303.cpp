@@ -103,7 +103,7 @@ JC303::JC303()
                                                         0.0f),
             std::make_unique<juce::AudioParameterChoice> ("lfoDestination",
                                                         "LFO Destination",
-                                                        juce::StringArray{ "Cutoff", "Volume", "Pitch", "HP/BP Morph" },
+                                                        juce::StringArray{ "Cutoff", "Volume", "Pitch", "Filter Mode" },
                                                         0),
             std::make_unique<juce::AudioParameterFloat> ("lfoPhase",
                                                         "LFO Phase",
@@ -135,18 +135,23 @@ JC303::JC303()
             // filter model selection
             std::make_unique<juce::AudioParameterChoice> ("filterType",
                                                         "Filter Model",
-                                                        juce::StringArray{ "TeeBee", "Diode", "Diode BP", "Diode HP" },
+                                                        juce::StringArray{ "TeeBee", "Diode" },
                                                         FILTER_TEEBEE),
             std::make_unique<juce::AudioParameterFloat> ("filterDrive",
                                                         "Filter Saturation",
                                                         0.0f,
                                                         1.0f,
                                                         0.0f),   // -3 dB into the diode saturator by default (parity with TeeBee and the real circuit)
-            std::make_unique<juce::AudioParameterFloat> ("bassComp",
-                                                        "HP/BP Morph",
+            std::make_unique<juce::AudioParameterFloat> ("filterMode",
+                                                        "Filter Mode",
                                                         0.0f,
                                                         1.0f,
-                                                        0.0f),   // Diode HP / Diode BP: 0 = pure HP/BP, 1 = lowpass; Diode: bass comp
+                                                        0.0f),   // Diode: 0 = lowpass, 0.5 = bandpass, 1 = highpass
+            std::make_unique<juce::AudioParameterFloat> ("bassComp",
+                                                        "Bass Comp",
+                                                        0.0f,
+                                                        1.0f,
+                                                        0.0f),   // Diode: 0 = the real circuit's resonance bass loss
             std::make_unique<juce::AudioParameterFloat> ("filterFm",
                                                         "Filter FM",
                                                         0.0f,
@@ -269,6 +274,7 @@ JC303::JC303()
     // filter model
     filterType = parameters.getRawParameterValue("filterType");
     filterDrive = parameters.getRawParameterValue("filterDrive");
+    filterMode = parameters.getRawParameterValue("filterMode");
     bassComp = parameters.getRawParameterValue("bassComp");
     filterFm = parameters.getRawParameterValue("filterFm");
     resTrim = parameters.getRawParameterValue("resTrim");
@@ -344,6 +350,7 @@ JC303::JC303()
     parameters.addParameterListener("switchOverdriveState", this);
     parameters.addParameterListener("filterType", this);
     parameters.addParameterListener("filterDrive", this);
+    parameters.addParameterListener("filterMode", this);
     parameters.addParameterListener("bassComp", this);
     parameters.addParameterListener("filterFm", this);
     parameters.addParameterListener("resTrim", this);
@@ -413,6 +420,7 @@ JC303::~JC303()
     parameters.removeParameterListener("switchOverdriveState", this);
     parameters.removeParameterListener("filterType", this);
     parameters.removeParameterListener("filterDrive", this);
+    parameters.removeParameterListener("filterMode", this);
     parameters.removeParameterListener("bassComp", this);
     parameters.removeParameterListener("filterFm", this);
     parameters.removeParameterListener("resTrim", this);
@@ -512,6 +520,9 @@ void JC303::parameterChanged(const juce::String& parameterID, float newValue)
     }
     else if (parameterID == "filterDrive" && *switchModState) {
         setParameter(FILTER_DRIVE, newValue);
+    }
+    else if (parameterID == "filterMode" && *switchModState) {
+        setParameter(FILTER_MODE, newValue);
     }
     else if (parameterID == "bassComp" && *switchModState) {
         setParameter(BASS_COMP, newValue);
@@ -727,8 +738,12 @@ void JC303::setParameter (Open303Parameters index, float value)
             linToLin(value, 0.0, 1.0,  -3.0,     16.0)
         );
         break;
+    case FILTER_MODE:
+        // 0..1 diode response mode: 0 = lowpass, 0.5 = bandpass, 1 = highpass
+        open303Core.setFilterMode(value);
+        break;
     case BASS_COMP:
-        // 0..1 HP/BP -> LP morph for the Diode HP / Diode BP models (0 = pure HP/BP), bass comp for Diode
+        // 0..1 diode bass comp
         open303Core.setPassbandCompensation(value);
         break;
     case FILTER_FM:
@@ -788,6 +803,7 @@ void JC303::setDevilMod(bool mode)
         setParameter(TANH_SHAPER_DRIVE, *sqrDriver);
         open303Core.setFilterType(static_cast<FilterType>((int) *filterType));
         setParameter(FILTER_DRIVE, *filterDrive);
+        setParameter(FILTER_MODE, *filterMode);
         setParameter(BASS_COMP, *bassComp);
         setParameter(FILTER_FM, *filterFm);
         setParameter(RES_TRIM, *resTrim);

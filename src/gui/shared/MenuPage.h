@@ -628,7 +628,8 @@ public:
         mod.items.add(Item { "filterType",  "Filter Model",     Type::value, {}, 1.0f, {}, {}, -1, 0, true });
         mod.items.add(Item { "resTrim",     "Res Trim",         Type::value, {}, 0.0f, {}, "filterType", 0, 0, true });   // no effect on TeeBee
         mod.items.add(Item { "filterDrive", "Filter Saturation", Type::value, {}, 0.0f, {}, "filterType", 0, 0, true });   // no effect on TeeBee
-        mod.items.add(Item { "bassComp",    "HP/BP Morph",      Type::value, {}, 0.0f, {}, "filterType", 0, 0, true, 1 << 30, "Bass Comp", 1 });   // Diode BP / HP morph; Diode bass comp
+        mod.items.add(Item { "filterMode",  "Filter Mode",      Type::value, {}, 0.0f, {}, "filterType", 0, 0, true });   // LP / BP / HP; no effect on TeeBee
+        mod.items.add(Item { "bassComp",    "Bass Comp",        Type::value, {}, 0.0f, {}, "filterType", 0, 0, true });   // no effect on TeeBee
         mod.items.add(Item { "filterFm",    "Filter FM",        Type::value, {}, 0.0f, {}, "filterType", 0, 0, true });   // no effect on TeeBee
         mod.items.add(Item { "subOscGain",  "Sub Osc",          Type::value, {}, 0.0f, {}, {}, -1, 0, true });
         mod.items.add(Item { "subOscBlend", "Sub Octave -2/-1", Type::value, {}, 0.0f, {}, {}, -1, 0, true });
