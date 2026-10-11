@@ -103,7 +103,7 @@ JC303::JC303()
                                                         0.0f),
             std::make_unique<juce::AudioParameterChoice> ("lfoDestination",
                                                         "LFO Destination",
-                                                        juce::StringArray{ "Cutoff", "Volume", "Pitch", "Filter Mode" },
+                                                        juce::StringArray{ "Cutoff", "Volume", "Pitch", "Filter Morph" },
                                                         0),
             std::make_unique<juce::AudioParameterFloat> ("lfoPhase",
                                                         "LFO Phase",
@@ -142,8 +142,8 @@ JC303::JC303()
                                                         0.0f,
                                                         1.0f,
                                                         0.0f),   // -3 dB into the diode saturator by default (parity with TeeBee and the real circuit)
-            std::make_unique<juce::AudioParameterFloat> ("filterMode",
-                                                        "Filter Mode",
+            std::make_unique<juce::AudioParameterFloat> ("filterMorph",
+                                                        "Filter Morph",
                                                         0.0f,
                                                         1.0f,
                                                         0.0f),   // Diode: 0 = lowpass, 0.5 = bandpass, 1 = highpass
@@ -274,7 +274,7 @@ JC303::JC303()
     // filter model
     filterType = parameters.getRawParameterValue("filterType");
     filterDrive = parameters.getRawParameterValue("filterDrive");
-    filterMode = parameters.getRawParameterValue("filterMode");
+    filterMorph = parameters.getRawParameterValue("filterMorph");
     bassComp = parameters.getRawParameterValue("bassComp");
     filterFm = parameters.getRawParameterValue("filterFm");
     resTrim = parameters.getRawParameterValue("resTrim");
@@ -350,7 +350,7 @@ JC303::JC303()
     parameters.addParameterListener("switchOverdriveState", this);
     parameters.addParameterListener("filterType", this);
     parameters.addParameterListener("filterDrive", this);
-    parameters.addParameterListener("filterMode", this);
+    parameters.addParameterListener("filterMorph", this);
     parameters.addParameterListener("bassComp", this);
     parameters.addParameterListener("filterFm", this);
     parameters.addParameterListener("resTrim", this);
@@ -420,7 +420,7 @@ JC303::~JC303()
     parameters.removeParameterListener("switchOverdriveState", this);
     parameters.removeParameterListener("filterType", this);
     parameters.removeParameterListener("filterDrive", this);
-    parameters.removeParameterListener("filterMode", this);
+    parameters.removeParameterListener("filterMorph", this);
     parameters.removeParameterListener("bassComp", this);
     parameters.removeParameterListener("filterFm", this);
     parameters.removeParameterListener("resTrim", this);
@@ -521,8 +521,8 @@ void JC303::parameterChanged(const juce::String& parameterID, float newValue)
     else if (parameterID == "filterDrive" && *switchModState) {
         setParameter(FILTER_DRIVE, newValue);
     }
-    else if (parameterID == "filterMode" && *switchModState) {
-        setParameter(FILTER_MODE, newValue);
+    else if (parameterID == "filterMorph" && *switchModState) {
+        setParameter(FILTER_MORPH, newValue);
     }
     else if (parameterID == "bassComp" && *switchModState) {
         setParameter(BASS_COMP, newValue);
@@ -738,7 +738,7 @@ void JC303::setParameter (Open303Parameters index, float value)
             linToLin(value, 0.0, 1.0,  -3.0,     16.0)
         );
         break;
-    case FILTER_MODE:
+    case FILTER_MORPH:
         // 0..1 diode response mode: 0 = lowpass, 0.5 = bandpass, 1 = highpass
         open303Core.setFilterMode(value);
         break;
@@ -803,7 +803,7 @@ void JC303::setDevilMod(bool mode)
         setParameter(TANH_SHAPER_DRIVE, *sqrDriver);
         open303Core.setFilterType(static_cast<FilterType>((int) *filterType));
         setParameter(FILTER_DRIVE, *filterDrive);
-        setParameter(FILTER_MODE, *filterMode);
+        setParameter(FILTER_MORPH, *filterMorph);
         setParameter(BASS_COMP, *bassComp);
         setParameter(FILTER_FM, *filterFm);
         setParameter(RES_TRIM, *resTrim);

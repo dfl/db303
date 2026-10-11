@@ -32,7 +32,7 @@ enum Open303Parameters
   SLIDE_TIME,
   TANH_SHAPER_DRIVE,
   FILTER_DRIVE,
-  FILTER_MODE,
+  FILTER_MORPH,
   BASS_COMP,
   FILTER_FM,
   RES_TRIM,
@@ -227,7 +227,7 @@ private:
     std::atomic<float>* overdriveDryWet = nullptr;
     std::atomic<float>* filterType = nullptr;
     std::atomic<float>* filterDrive = nullptr;
-    std::atomic<float>* filterMode = nullptr;
+    std::atomic<float>* filterMorph = nullptr;
     std::atomic<float>* bassComp = nullptr;
     std::atomic<float>* filterFm = nullptr;
     std::atomic<float>* resTrim = nullptr;
