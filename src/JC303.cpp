@@ -135,7 +135,7 @@ JC303::JC303()
             // filter model selection
             std::make_unique<juce::AudioParameterChoice> ("filterType",
                                                         "Filter Model",
-                                                        juce::StringArray{ "TeeBee", "Diode Native", "Diode BP", "Diode HP" },
+                                                        juce::StringArray{ "TeeBee", "Diode", "Diode BP", "Diode HP" },
                                                         FILTER_TEEBEE),
             std::make_unique<juce::AudioParameterFloat> ("filterDrive",
                                                         "Filter Saturation",
@@ -146,7 +146,7 @@ JC303::JC303()
                                                         "HP/BP Morph",
                                                         0.0f,
                                                         1.0f,
-                                                        0.0f),   // Diode HP / Diode BP: 0 = pure HP/BP, 1 = lowpass; Diode Native: bass comp
+                                                        0.0f),   // Diode HP / Diode BP: 0 = pure HP/BP, 1 = lowpass; Diode: bass comp
             std::make_unique<juce::AudioParameterFloat> ("filterFm",
                                                         "Filter FM",
                                                         0.0f,
@@ -728,7 +728,7 @@ void JC303::setParameter (Open303Parameters index, float value)
         );
         break;
     case BASS_COMP:
-        // 0..1 HP/BP -> LP morph for the Diode HP / Diode BP models (0 = pure HP/BP), bass comp for Diode Native
+        // 0..1 HP/BP -> LP morph for the Diode HP / Diode BP models (0 = pure HP/BP), bass comp for Diode
         open303Core.setPassbandCompensation(value);
         break;
     case FILTER_FM:
