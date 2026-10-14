@@ -5,6 +5,7 @@
 // Open303
 #include "dsp/open303/rosic_Open303.h"
 using namespace rosic;
+using namespace dfl;
 
 // GuitarML BYOD implementation
 #include "dsp/guitarml-byod/processors/drive/GuitarMLAmp.h"
@@ -26,13 +27,20 @@ enum Open303Parameters
   SWITCH_MOD,
   NORMAL_DECAY,
   ACCENT_DECAY,
+  ACCENT_SWEEP,
   FEEDBACK_HPF,
   SOFT_ATTACK,
   SLIDE_TIME,
   TANH_SHAPER_DRIVE,
   FILTER_DRIVE,
+  FILTER_MORPH,
   BASS_COMP,
   FILTER_FM,
+  RES_TRIM,
+  FILTER_QUALITY,
+  FILTER_TENSION,
+  FILTER_BIAS,
+  FILTER_RAIL,
   // LFO
   LFO_WAVEFORM,
   LFO_RATE,
@@ -53,6 +61,9 @@ enum Open303Parameters
 };
 
 //==============================================================================
+// Accent Sweep knob 0..1 -> accent capacitor time constant in ms; 15 ms is the stock 303
+inline double accentSweepMs (float value) { return linToExp (value, 0.0, 1.0, 15.0, 2000.0); }
+
 class JC303  :  public juce::AudioProcessor,
                 public juce::AudioProcessorValueTreeState::Listener
 {
@@ -71,6 +82,21 @@ public:
     using AudioProcessor::processBlock;
 
     void setDevilMod(bool mode);
+
+    // Bipolar (-1..1) parameters: a centre detent snaps |v| < bipolarDetentZone to exactly 0 and the rest of the travel
+    // is stretched so the ends still reach +-1 (as the web UI's sticky zero, with a narrower zone so the Mods menu's
+    // 2 % steps leave it in two clicks).
+    static constexpr float bipolarDetentZone = 0.05f;
+    static float bipolarDetent (float v)
+    {
+        const float a = std::abs (v);
+        return a < bipolarDetentZone ? 0.0f : std::copysign ((a - bipolarDetentZone) / (1.0f - bipolarDetentZone), v);
+    }
+    static juce::String signedPercent (float v)
+    {
+        const int pct = juce::roundToInt (v * 100.0f);
+        return (pct > 0 ? "+" : "") + juce::String (pct) + "%";
+    }
 
     //==============================================================================
     juce::AudioProcessorEditor* createEditor() override;
@@ -206,6 +232,7 @@ private:
     std::atomic<float>* switchModState = nullptr;
     std::atomic<float>* normalDecay = nullptr;
     std::atomic<float>* accentDecay = nullptr;
+    std::atomic<float>* accentSweep = nullptr;
     std::atomic<float>* feedbackFilter = nullptr;
     std::atomic<float>* softAttack = nullptr;
     std::atomic<float>* slideTime = nullptr;
@@ -225,8 +252,14 @@ private:
     std::atomic<float>* filterType = nullptr;
     std::atomic<float>* squareModel = nullptr;
     std::atomic<float>* filterDrive = nullptr;
+    std::atomic<float>* filterMorph = nullptr;
     std::atomic<float>* bassComp = nullptr;
     std::atomic<float>* filterFm = nullptr;
+    std::atomic<float>* resTrim = nullptr;
+    std::atomic<float>* filterQuality = nullptr;
+    std::atomic<float>* filterTension = nullptr;
+    std::atomic<float>* filterBias = nullptr;
+    std::atomic<float>* filterRail = nullptr;
     // generative sequencer
     std::atomic<float>* seqGenerativeFill = nullptr;
     std::atomic<float>* seqGenerativeAccentProbability = nullptr;

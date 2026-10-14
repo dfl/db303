@@ -31,7 +31,8 @@ Open303::Open303()
   noteOffCountDown =     0;
   slideToNextNote  = false;
   idle             = true;
-  currentFilterType = FILTER_TEEBEE;
+  currentFilterType = dfl::FILTER_TEEBEE;
+  pendingFilterType = dfl::FILTER_TEEBEE;
 
   // LFO defaults
   lfoDepth         =    0.0;
@@ -68,6 +69,7 @@ Open303::Open303()
   rc2.setTimeConstant(15.0);
 
   highpass1.setMode(OnePoleFilter::HIGHPASS);
+  diodeInputCoupling.setMode(OnePoleFilter::HIGHPASS);
   highpass2.setMode(OnePoleFilter::HIGHPASS);
   allpass.setMode(OnePoleFilter::ALLPASS);
   notch.setMode(BiquadFilter::BANDREJECT);
@@ -78,12 +80,13 @@ Open303::Open303()
   oscillator.setPulseWidth(50.0);
   oscillator.setCircuitPulseShape(false);   // flat-topped square unless switched on (JC303: the Mods switch)
   highpass1.setCutoff(44.486);
+  diodeInputCoupling.setCutoff(1.0 / (2.0 * PI * 1e-6 * 222.2e3));   // C17 1u into R62 220k + R70 2.2k: 0.72 Hz
   highpass2.setCutoff(24.167);
   allpass.setCutoff(14.008);
   notch.setFrequency(7.5164);
   notch.setBandwidth(4.7);
 
-  filter.setFeedbackHighpassCutoff(150.0);
+  setFeedbackHighpass(feedbackHighpass);   // also sets the diode corner and the output network's coupling pole
 }
 
 Open303::~Open303()
@@ -108,14 +111,19 @@ void Open303::setSampleRate(double newSampleRate)
   highpass2.setSampleRate     (         newSampleRate);
   allpass.setSampleRate       (         newSampleRate);
   notch.setSampleRate         (         newSampleRate);
+  outputNetwork.setSampleRate (         newSampleRate);
+  outputNetwork.setCouplingInFilter(true);   // the diode filter applies C27 / C25 and Q21 at the oversampled rate
 
   highpass1.setSampleRate     (  oversampling*newSampleRate);
+  diodeInputCoupling.setSampleRate(oversampling*newSampleRate);
 
   oscillator.setSampleRate    (  oversampling*newSampleRate);
   subOscillator.setSampleRate (  oversampling*newSampleRate);
   filter.setSampleRate        (  oversampling*newSampleRate);
   diodeFilter.setSampleRate   (  oversampling*newSampleRate);
+  switchStep = 1.0 / (0.005 * newSampleRate);
   sampleRate = newSampleRate;
+  updateAccentSweepGain();
 }
 
 void Open303::setCutoff(double newCutoff)
@@ -127,38 +135,35 @@ void Open303::setCutoff(double newCutoff)
 void Open303::setResonance(double newResonance)
 {
   // newResonance is a percentage (0..100). The TeeBee filter takes percent
-  // directly and skews/normalizes it internally; the diode filter expects a
-  // normalized, pre-skewed 0..1 value (K = 17*resonance, self-oscillation ~17).
+  // directly and skews/normalizes it internally; the diode filter takes the same
+  // saturating-exponential skew (see TeeBeeFilter::setResonance) as a 0..1 value
+  // and undoes it to recover the resonance pot's rotation.
   double normalizedResonance = 0.01 * newResonance;               // 0..100 -> 0..1
-
-  // Match the TeeBee's resonance skew so the knob tracks the same curve on both
-  // models: use the TeeBee's saturating-exponential map (see
-  // TeeBeeFilter::setResonance) instead of a cubic, so the resonance comes up on
-  // the same curve rather than staying flat then spiking. At knob = 100 this
-  // reaches 1.0, driving the diode's K to its self-oscillation point (17).
-  // The Diode Octave model is pulled back below self-oscillation to match the
-  // TeeBee - that ceiling lives in DiodeLadderFilter (octave-mode only), so
-  // plain Diode still self-oscillates at full knob.
   double skewedResonance = (1.0 - exp(-3.0*normalizedResonance)) / (1.0 - exp(-3.0));
 
   filter.setResonance(newResonance);
   diodeFilter.setResonance(skewedResonance);
+  outputNetwork.setPot(diodeFilter.getResonancePot());
 }
 
-void Open303::setFilterType(FilterType newType)
+void Open303::setFilterType(dfl::FilterType newType)
 {
-  currentFilterType = newType;
+  pendingFilterType = newType;
+  if( idle )
+    currentFilterType = newType;   // nothing is sounding yet: switch right away
+}
 
-  // Octave mode (steeper 1st pole) applies only to the plain-LP Diode Octave
-  // model. The BP/HP response modes are plain-diode only.
-  diodeFilter.setOctaveMode(newType == FILTER_DIODE_OCTAVE);
-
-  int response = DiodeLadderFilter::RESPONSE_LP;
-  if(newType == FILTER_DIODE_BP)
-    response = DiodeLadderFilter::RESPONSE_BP;
-  else if(newType == FILTER_DIODE_HP)
-    response = DiodeLadderFilter::RESPONSE_HP;
-  diodeFilter.setResponseMode(response);
+void Open303::resetFilters()
+{
+  filter.reset();
+  diodeFilter.reset();
+  highpass1.reset();
+  diodeInputCoupling.reset();
+  highpass2.reset();
+  allpass.reset();
+  notch.reset();
+  outputNetwork.reset();
+  antiAliasFilter.reset();
 }
 
 void Open303::setFilterDrive(double newDriveDb)
@@ -172,7 +177,7 @@ void Open303::setFilterDrive(double newDriveDb)
 
 void Open303::setPassbandCompensation(double newCompensation)
 {
-  // Diode-ladder-only: TeeBee has no passband compensation.
+  // Diode bass comp (the TeeBee has none)
   diodeFilter.setPassbandCompensation(newCompensation);
 }
 
@@ -286,13 +291,7 @@ void Open303::triggerNote(int noteNumber, bool hasAccent)
   {
     oscillator.resetPhase();
     subOscillator.resetPhase();
-    filter.reset();
-    diodeFilter.reset();
-    highpass1.reset();
-    highpass2.reset();
-    allpass.reset();
-    notch.reset();
-    antiAliasFilter.reset();
+    resetFilters();
     ampDeClicker.reset();
   }
 
@@ -401,6 +400,17 @@ void Open303::updateNormalizer1()
   n1 = LeakyIntegrator::getNormalizer(mainEnv.getDecayTimeConstant(), rc1.getTimeConstant(),
     sampleRate);
   n1 = 1.0; // test
+}
+
+void Open303::updateAccentSweepGain()
+{
+  const double stock = 15.0;
+  const double sweep = rc2.getTimeConstant();
+  if( sweep == stock )
+    accentSweepGain = 1.0;
+  else
+    accentSweepGain = LeakyIntegrator::getNormalizer(accentDecay, sweep, sampleRate)
+                    / LeakyIntegrator::getNormalizer(accentDecay, stock, sampleRate);
 }
 
 void Open303::updateNormalizer2()
