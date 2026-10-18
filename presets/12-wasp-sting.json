@@ -1,0 +1,43 @@
+{
+    "name": "Wasp Sting",
+    "description": "Wasp Sting: EDP Wasp in bandpass on a PWM'd circuit square; accents drop back to lowpass.",
+    "knobs": [
+        "filterMorph",
+        "lfoDepth"
+    ],
+    "values": {
+        "switchModState": 1,
+        "oscModel": 0,
+        "waveform": 1,
+        "filterType": 4,
+        "filterMorph": 0.5,
+        "cutoff": 0.45,
+        "resonance": 0.7,
+        "envmod": 0.6,
+        "decay": 0.45,
+        "accent": 0.8,
+        "lfoDestination": 3,
+        "lfoWaveform": 0,
+        "lfoRate": 0.55,
+        "lfoDepth": 0.6,
+        "normalDecay": 0.35,
+        "accentDecay": 0.1,
+        "slideTime": 0.3,
+        "modSlot3Source": 3,
+        "modSlot3Dest": 13,
+        "modSlot3Amount": -0.5
+    },
+    "notes": {
+        "waveform": "square",
+        "filterType": "Wasabi",
+        "filterMorph": "bandpass",
+        "cutoff": "785 Hz",
+        "lfoDestination": "Pulse Width",
+        "lfoRate": "1.9 Hz",
+        "normalDecay": "1.1 s",
+        "accentDecay": "330 ms",
+        "modSlot3Source": "Accent",
+        "modSlot3Dest": "Filter Morph",
+        "modSlot3Amount": "accents morph BP -> LP for weight"
+    }
+}

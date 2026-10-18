@@ -1,0 +1,41 @@
+{
+    "name": "Hoover",
+    "description": "Alpha Juno \"What The\" / Mentasm: the PWM'd chopped saw (SAW03), thickened by the supersaw stack in place of the Juno's chorus, a -1 octave sub, an open MS-20 filter, long decays and long slides for the swoops.",
+    "knobs": [
+        "superDetune",
+        "lfoDepth"
+    ],
+    "values": {
+        "switchModState": 1,
+        "oscModel": 1,
+        "junoWave": 2,
+        "superDetune": 0.35,
+        "waveform": 0,
+        "lfoDestination": 3,
+        "lfoWaveform": 0,
+        "lfoRate": 0.4,
+        "lfoDepth": 0.7,
+        "subOscGain": 0.35,
+        "subOscBlend": 1,
+        "filterType": 2,
+        "cutoff": 0.85,
+        "resonance": 0.15,
+        "envmod": 0.15,
+        "decay": 1,
+        "accent": 0.4,
+        "normalDecay": 1,
+        "accentDecay": 1,
+        "slideTime": 0.8
+    },
+    "notes": {
+        "oscModel": "Alpha Juno",
+        "junoWave": "3 PW",
+        "lfoDestination": "Pulse Width",
+        "lfoWaveform": "Triangle",
+        "lfoRate": "0.8 Hz",
+        "subOscBlend": "-1 octave",
+        "filterType": "MissBehave",
+        "normalDecay": "3 s",
+        "slideTime": "290 ms"
+    }
+}

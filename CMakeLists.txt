@@ -185,6 +185,14 @@ target_compile_definitions("${PROJECT_NAME}"
 # NAMESPACE ...                 # Namespace of the generated binary data class. "BinaryData" is used by default
 #   SOURCES ...)                    # List of asset files of any kind that should be built into the static library
 
+# Factory presets: every presets/*.json is built in, in file name order. Add or remove a file and rebuild.
+file(GLOB FACTORY_PRESET_FILES CONFIGURE_DEPENDS "${PROJECT_SOURCE_DIR}/presets/*.json")
+juce_add_binary_data(FactoryPresetData
+    HEADER_NAME FactoryPresetData.h
+    NAMESPACE FactoryPresetData
+    SOURCES ${FACTORY_PRESET_FILES})
+set_target_properties(FactoryPresetData PROPERTIES POSITION_INDEPENDENT_CODE TRUE)
+
 # `target_link_libraries` links libraries and JUCE modules to other libraries or executables. Here,
 # we're linking our executable target to the `juce::juce_audio_utils` module. Inter-module
 # dependencies are resolved automatically.
@@ -192,6 +200,7 @@ target_compile_definitions("${PROJECT_NAME}"
 target_link_libraries("${PROJECT_NAME}"
     PRIVATE
         BinaryData
+        FactoryPresetData
         juce::juce_audio_utils
     PUBLIC
         juce::juce_recommended_config_flags

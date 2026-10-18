@@ -1,0 +1,37 @@
+{
+    "name": "Floppy Drop",
+    "description": "Floppy Drop: Hi-Fi diode ladder with floppy rungs: the louder the resonance rings, the further its pitch sags, a rubbery drop on every accent.",
+    "knobs": [
+        "filterTension",
+        "cutoff"
+    ],
+    "values": {
+        "switchModState": 1,
+        "filterType": 1,
+        "filterQuality": 1,
+        "filterTension": -0.8,
+        "oscModel": 0,
+        "waveform": 1,
+        "cutoff": 0.3,
+        "resonance": 0.85,
+        "envmod": 0.7,
+        "decay": 0.55,
+        "accent": 1,
+        "filterDrive": 0.35,
+        "normalDecay": 0.45,
+        "accentDecay": 0.12,
+        "slideTime": 0.33
+    },
+    "notes": {
+        "filterType": "Spicy",
+        "filterQuality": "Hi-Fi",
+        "filterTension": "floppy: up to ~5 semitones lower when loud",
+        "waveform": "square",
+        "cutoff": "575 Hz",
+        "decay": "380 ms",
+        "filterDrive": "+6 dB",
+        "normalDecay": "1.4 s",
+        "accentDecay": "390 ms",
+        "slideTime": "120 ms"
+    }
+}

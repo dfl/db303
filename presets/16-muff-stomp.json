@@ -1,0 +1,42 @@
+{
+    "name": "Muff Stomp",
+    "description": "Muff Stomp: Big Muff fuzz before the VCA so the envelope shapes the fuzz; accents push the wet mix.",
+    "knobs": [
+        "cutoff",
+        "modSlot3Amount"
+    ],
+    "values": {
+        "switchModState": 1,
+        "filterType": 1,
+        "oscModel": 0,
+        "waveform": 0,
+        "cutoff": 0.35,
+        "resonance": 0.7,
+        "envmod": 0.6,
+        "decay": 0.5,
+        "accent": 0.9,
+        "bassComp": 0.4,
+        "feedbackFilter": 0.8,
+        "normalDecay": 0.45,
+        "accentDecay": 0.08,
+        "slideTime": 0.33,
+        "switchOverdriveState": 1,
+        "overdriveModelIndex": 36,
+        "overdriveLevel": 0.7,
+        "overdriveDryWet": 0.6,
+        "overdriveDisperse": 0.5,
+        "overdrivePreVca": 1,
+        "modSlot3Source": 3,
+        "modSlot3Dest": 5,
+        "modSlot3Amount": 0.8
+    },
+    "notes": {
+        "filterType": "Spicy",
+        "waveform": "saw",
+        "feedbackFilter": "128 Hz",
+        "overdriveModelIndex": "Big Muff V6",
+        "modSlot3Source": "Accent",
+        "modSlot3Dest": "Overdrive (dry/wet)",
+        "modSlot3Amount": "+0.4 wet on accents (clamped at 1.0)"
+    }
+}

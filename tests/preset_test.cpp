@@ -52,6 +52,20 @@ static int programIndex (JC303& p, const juce::String& name)
     return -1;
 }
 
+static void testParseFactoryPreset()
+{
+    const auto preset = dfl::parseFactoryPreset (R"({ "name": "Test", "description": "a test", "knobs": ["waveform", "resonance"],
+                                                      "values": { "cutoff": 0.25, "oscModel": 2 }, "notes": { "oscModel": "Phaseshaper" } })");
+    CHECK (preset.name == "Test" && preset.description == "a test", "name '%s'", preset.name.toRawUTF8());
+    CHECK (preset.knob1 == "waveform" && preset.knob2 == "resonance", "knobs %s / %s", preset.knob1.toRawUTF8(), preset.knob2.toRawUTF8());
+    CHECK (preset.values.size() == 2 && preset.values[0].first == "cutoff" && preset.values[0].second == 0.25f
+           && preset.values[1].first == "oscModel" && preset.values[1].second == 2.0f, "values not parsed in order");
+
+    const auto bare = dfl::parseFactoryPreset (R"({ "name": "Bare" })");
+    CHECK (bare.values.empty() && bare.knob1 == "cutoff" && bare.knob2 == "lfoDepth", "bare preset defaults");
+}
+
+
 static void testProgramList (JC303& p)
 {
     CHECK (p.getNumPrograms() >= 2, "only %d programs", p.getNumPrograms());
@@ -63,7 +77,7 @@ static void testPresetIdsExist (JC303& p)
 {
     for (auto& preset : dfl::factoryPresets())
         for (auto& [id, v] : preset.values)
-            CHECK (find (p, id) != nullptr, "preset '%s' sets unknown parameter '%s'", preset.name, id);
+            CHECK (find (p, id) != nullptr, "preset '%s' sets unknown parameter '%s'", preset.name.toRawUTF8(), id.toRawUTF8());
 }
 
 static void testPresetValuesInRange (JC303& p)
@@ -74,7 +88,7 @@ static void testPresetValuesInRange (JC303& p)
             if (auto* param = find (p, id))
             {
                 const float loaded = param->convertFrom0to1 (param->convertTo0to1 (v));
-                CHECK (std::abs (loaded - v) < 1e-3f, "preset '%s': %s = %g loads as %g", preset.name, id, v, loaded);
+                CHECK (std::abs (loaded - v) < 1e-3f, "preset '%s': %s = %g loads as %g", preset.name.toRawUTF8(), id.toRawUTF8(), v, loaded);
             }
 }
 
@@ -211,8 +225,8 @@ static void testPerformanceKnobs()
 static void testPresetKnobsExist (JC303& p)
 {
     for (auto& preset : dfl::factoryPresets())
-        for (auto* id : { preset.knob1, preset.knob2 })
-            CHECK (find (p, id) != nullptr, "preset '%s' assigns unknown parameter '%s' to a knob", preset.name, id);
+        for (auto& id : { preset.knob1, preset.knob2 })
+            CHECK (find (p, id) != nullptr, "preset '%s' assigns unknown parameter '%s' to a knob", preset.name.toRawUTF8(), id.toRawUTF8());
 }
 
 // fundamental by autocorrelation over 50..500 Hz
@@ -299,9 +313,10 @@ static void testModWheelDrivesKnobOne (JC303& p)
 // every preset makes clean sound: finite, audible, under full scale, and level-matched to the bank
 static void testEveryPresetRenders (JC303& p, const char* wavDir)
 {
-    std::vector<std::pair<const char*, double>> attacks;
+    std::vector<std::pair<juce::String, double>> attacks;
     for (auto& preset : dfl::factoryPresets())
     {
+        const char* name = preset.name.toRawUTF8();
         const auto out = render (p, preset.name);
         bool finite = true;
         float peak = 0.0f;
@@ -313,22 +328,22 @@ static void testEveryPresetRenders (JC303& p, const char* wavDir)
             }
         const double attackDb = rmsDb (out, 0, (int) (0.15 * 44100.0));
         const double heldDb = rmsDb (out, (int) (1.75 * 44100.0), (int) (1.9 * 44100.0));
-        std::printf ("  %-12s attack %6.1f dBFS, held %6.1f dBFS, peak %6.1f dBFS\n", preset.name, attackDb, heldDb,
+        std::printf ("  %-12s attack %6.1f dBFS, held %6.1f dBFS, peak %6.1f dBFS\n", name, attackDb, heldDb,
                      20.0 * std::log10 (peak + 1e-30));
-        CHECK (finite, "preset '%s' renders NaN/inf", preset.name);
-        CHECK (attackDb > -60.0, "preset '%s' is silent (%.1f dBFS)", preset.name, attackDb);
-        CHECK (peak < 1.0f, "preset '%s' clips (peak %.2f)", preset.name, peak);
+        CHECK (finite, "preset '%s' renders NaN/inf", name);
+        CHECK (attackDb > -60.0, "preset '%s' is silent (%.1f dBFS)", name, attackDb);
+        CHECK (peak < 1.0f, "preset '%s' clips (peak %.2f)", name, peak);
         attacks.push_back ({ preset.name, attackDb });
 
         if (wavDir != nullptr)
-            writeWav (out, juce::File (wavDir).getChildFile (juce::String (preset.name).replace (" ", "_") + ".wav"));
+            writeWav (out, juce::File (wavDir).getChildFile (preset.name.replace (" ", "_") + ".wav"));
     }
 
     auto sorted = attacks;
     std::sort (sorted.begin(), sorted.end(), [] (auto& a, auto& b) { return a.second < b.second; });
     const double median = sorted[sorted.size() / 2].second;
     for (auto& [name, db] : attacks)
-        CHECK (std::abs (db - median) < 15.0, "preset '%s' attack %.1f dB is far from the bank median %.1f dB", name, db, median);
+        CHECK (std::abs (db - median) < 15.0, "preset '%s' attack %.1f dB is far from the bank median %.1f dB", name.toRawUTF8(), db, median);
 }
 
 int main (int argc, char** argv)
@@ -348,6 +363,7 @@ int main (int argc, char** argv)
         testModWheelDrivesKnobOne (p);
     }
     testPerformanceKnobs();
+    testParseFactoryPreset();
 
     if (failures == 0)
         std::printf ("preset_test: all passed\n");

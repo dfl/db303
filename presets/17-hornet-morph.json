@@ -1,0 +1,38 @@
+{
+    "name": "Hornet Morph",
+    "description": "Hornet Morph: buzzy +3 oct chopped Juno saw, the Wasp A124 filter swept LP -> BP -> HP by the LFO.",
+    "knobs": [
+        "lfoRate",
+        "filterMorph"
+    ],
+    "values": {
+        "switchModState": 1,
+        "oscModel": 1,
+        "junoWave": 3,
+        "waveform": 0,
+        "filterType": 5,
+        "filterMorph": 0.5,
+        "cutoff": 0.5,
+        "resonance": 0.6,
+        "envmod": 0.3,
+        "decay": 0.5,
+        "accent": 0.6,
+        "lfoDestination": 13,
+        "lfoWaveform": 0,
+        "lfoRate": 0.35,
+        "lfoDepth": 1,
+        "normalDecay": 0.5,
+        "slideTime": 0.33
+    },
+    "notes": {
+        "oscModel": "Alpha Juno",
+        "junoWave": "4 Hi Oct (SAW04)",
+        "filterType": "Hornet",
+        "filterMorph": "centre on BP so +/- 0.5 reaches LP and HP",
+        "cutoff": "870 Hz",
+        "lfoDestination": "Filter Morph",
+        "lfoWaveform": "Triangle",
+        "lfoRate": "0.6 Hz",
+        "lfoDepth": "full LP..HP sweep"
+    }
+}

@@ -1,0 +1,51 @@
+{
+    "name": "Super JP",
+    "description": "Super JP: JP-8000 supersaw stack on the Juno-106 filter, half keytracked, slow cutoff breath.",
+    "knobs": [
+        "superDetune",
+        "superMix"
+    ],
+    "values": {
+        "switchModState": 1,
+        "oscModel": 1,
+        "junoWave": 0,
+        "superDetune": 0.55,
+        "superMix": 0.75,
+        "waveform": 0,
+        "filterType": 3,
+        "cutoff": 0.85,
+        "resonance": 0.1,
+        "envmod": 0.2,
+        "decay": 0.7,
+        "accent": 0.3,
+        "normalDecay": 1,
+        "softAttack": 0.55,
+        "slideTime": 0.3,
+        "subOscGain": 0.2,
+        "subOscBlend": 1,
+        "lfoDestination": 0,
+        "lfoWaveform": 0,
+        "lfoRate": 0.3,
+        "lfoDepth": 0.15,
+        "modSlot3Source": 4,
+        "modSlot3Dest": 0,
+        "modSlot3Amount": 0.5
+    },
+    "notes": {
+        "oscModel": "Alpha Juno",
+        "junoWave": "1 Saw",
+        "filterType": "JuneBug",
+        "decay": "750 ms",
+        "normalDecay": "3 s",
+        "softAttack": "47 ms",
+        "slideTime": "110 ms",
+        "subOscBlend": "-1 octave",
+        "lfoDestination": "Cutoff",
+        "lfoWaveform": "Triangle",
+        "lfoRate": "0.5 Hz",
+        "lfoDepth": "+/- 0.3 oct",
+        "modSlot3Source": "Key",
+        "modSlot3Dest": "Cutoff",
+        "modSlot3Amount": "50% keyboard tracking"
+    }
+}
