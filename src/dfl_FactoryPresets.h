@@ -269,6 +269,32 @@ inline const std::vector<FactoryPreset>& factoryPresets()
             { "modSlot3Amount",  -0.4f },   // high notes decay faster
         }, "shapeDrift", "lfoDepth" },
 
+        // Formant Talk: VPS formant swept down from ~h10 to h3 on every note ("yow"), split into two peaks,
+        // drifting. The formant does the vowel, so the filter stays open.
+        { "Formant Talk", {
+            { "switchModState",  1.0f },
+            { "oscModel",        2.0f },    // Phaseshaper
+            { "shaperMode",      2.0f },    // Formant
+            { "waveform",        0.07f },   // formant at h3 at rest
+            { "shaperSplit",     0.25f },   // two peaks, close together
+            { "shapeDrift",      0.4f },
+            { "filterType",      1.0f },    // Spicy
+            { "cutoff",          0.8f },
+            { "resonance",       0.25f },
+            { "envmod",          0.15f },
+            { "decay",           0.6f },    // 475 ms: also the formant sweep time
+            { "accentDecay",     0.15f },   // 475 ms, same sweep on accents
+            { "accent",          0.5f },
+            { "normalDecay",     0.6f },    // 1.8 s
+            { "slideTime",       0.4f },    // 145 ms
+            { "modSlot3Source",  7.0f },    // Env+
+            { "modSlot3Dest",    10.0f },   // Waveform (formant)
+            { "modSlot3Amount",  0.5f },    // up to ~h10 at note-on
+            { "modSlot4Source",  4.0f },    // Key
+            { "modSlot4Dest",    0.0f },    // Cutoff
+            { "modSlot4Amount",  0.5f },
+        }, "waveform", "shaperSplit" },
+
         // Wasp Sting: EDP Wasp in bandpass on a PWM'd circuit square; accents drop back to lowpass.
         { "Wasp Sting", {
             { "switchModState",  1.0f },
