@@ -1,16 +1,13 @@
 {
     "name": "Vowel Sync",
-    "description": "Vowel Sync: Tri Mod sync sweep on every note, from a peak near h13 back down to a rooted triangle bite. Env+ rests at 0, so the Waveform knob is the resting shape.",
-    "knobs": [
-        "waveform",
-        "filterMorph"
-    ],
+    "description": "Tri Mod sync sweep on every note, from a peak near h13 back down to a rooted triangle bite. Env+ rests at 0, so the Waveform knob is the resting shape.",
+    "knobs": ["waveform", "filterMorph"],
     "values": {
-        "switchModState": 1,
-        "oscModel": 2,
-        "shaperMode": 0,
+        "switchModState": true,
+        "oscModel": "Phaseshaper",
+        "shaperMode": "Tri Mod",
         "waveform": 0.02,
-        "filterType": 6,
+        "filterType": "SemiSweet",
         "filterMorph": 0.25,
         "cutoff": 0.7,
         "resonance": 0.3,
@@ -20,28 +17,22 @@
         "accent": 0.5,
         "normalDecay": 0.5,
         "slideTime": 0.4,
-        "modSlot3Source": 4,
-        "modSlot3Dest": 0,
+        "modSlot3Source": "Key",
+        "modSlot3Dest": "Cutoff",
         "modSlot3Amount": 0.5,
-        "modSlot4Source": 7,
-        "modSlot4Dest": 10,
+        "modSlot4Source": "Env+",
+        "modSlot4Dest": "Waveform",
         "modSlot4Amount": 0.53
     },
     "notes": {
-        "oscModel": "Phaseshaper",
-        "shaperMode": "Tri Mod",
         "waveform": "aTM 0.6 at rest: the root stays solid",
-        "filterType": "SemiSweet",
         "filterMorph": "LP leaning to BP: nasal",
         "cutoff": "1.3 kHz",
         "decay": "475 ms: also the formant sweep time",
         "accentDecay": "475 ms, same sweep on accents",
         "normalDecay": "1.5 s",
         "slideTime": "145 ms",
-        "modSlot3Source": "Key",
-        "modSlot3Dest": "Cutoff",
-        "modSlot4Source": "Env+",
-        "modSlot4Dest": "Waveform (shape)",
+        "modSlot4Dest": "shape",
         "modSlot4Amount": "aTM ~3.5 (peak ~h13) at note-on, back to 0.6"
     }
 }

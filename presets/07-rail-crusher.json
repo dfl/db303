@@ -1,19 +1,16 @@
 {
     "name": "Rail Crusher",
-    "description": "Rail Crusher: Hi-Fi diode ladder at full saturation (+16 dB) under a lowered rail: the stage voltages are capped, so the drive turns into a dense, compressed crunch rather than runaway fizz.",
-    "knobs": [
-        "filterRail",
-        "filterTension"
-    ],
+    "description": "Hi-Fi diode ladder at full saturation (+16 dB) under a lowered rail: the stage voltages are capped, so the drive turns into a dense, compressed crunch rather than runaway fizz.",
+    "knobs": ["filterRail", "filterTension"],
     "values": {
-        "switchModState": 1,
-        "filterType": 1,
-        "filterQuality": 1,
+        "switchModState": true,
+        "filterType": "Spicy",
+        "filterQuality": "Hi-Fi",
         "filterDrive": 1,
         "filterRail": 0.4,
         "filterBias": 1,
         "filterTension": 0,
-        "oscModel": 0,
+        "oscModel": "TB-303",
         "waveform": 0,
         "cutoff": 0.2,
         "resonance": 1,
@@ -26,8 +23,6 @@
         "softAttack": 0.35
     },
     "notes": {
-        "filterType": "Spicy",
-        "filterQuality": "Hi-Fi",
         "filterDrive": "+16 dB, full saturation",
         "filterRail": "a low ceiling on the stage voltages",
         "filterBias": "full asymmetry and driven swell",

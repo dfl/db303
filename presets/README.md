@@ -8,16 +8,17 @@ Every `*.json` file in this folder is built into the plugin as a factory preset,
     "name": "Hoover",
     "description": "What the sound is and how it is made.",
     "knobs": ["superDetune", "lfoDepth"],
-    "values": { "oscModel": 1, "lfoRate": 0.4 },
-    "notes": { "oscModel": "Alpha Juno", "lfoRate": "0.8 Hz" }
+    "values": { "switchModState": true, "oscModel": "Alpha Juno", "lfoRate": 0.4 },
+    "notes": { "lfoRate": "0.8 Hz" }
 }
 ```
 
-- `values`: parameter ID -> value in the parameter's own units: choice index, 0/1 for switches, the raw
-  value for floats. Every sound parameter not listed goes back to its default.
+- `values`: parameter ID -> value. Choice parameters take the name shown in the plugin (`"Phaseshaper"`,
+  `"Env+"`; an index also works), switches take `true` / `false`, and floats take the raw parameter value
+  (0..1 for most knobs). Every sound parameter not listed goes back to its default.
 - `knobs`: the two performance knobs (the mod wheel drives the first). Default: `cutoff`, `lfoDepth`.
 - `description` and `notes` are for people reading the file; the plugin ignores them.
 - The sequencer, volume and tuning are never changed by a preset.
 
-`preset_test` checks that every ID and knob exists and every value is in range, and that each preset
+`preset_test` checks that every ID and knob exists, every choice name is real and every value is in range, and that each preset
 renders cleanly and near the level of the rest of the bank.

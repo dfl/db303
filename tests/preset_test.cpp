@@ -4,6 +4,7 @@
 #include "dfl_FactoryPresets.h"
 
 #include <algorithm>
+#include <optional>
 #include <cstdio>
 
 static int failures = 0;
@@ -55,16 +56,34 @@ static int programIndex (JC303& p, const juce::String& name)
 static void testParseFactoryPreset()
 {
     const auto preset = dfl::parseFactoryPreset (R"({ "name": "Test", "description": "a test", "knobs": ["waveform", "resonance"],
-                                                      "values": { "cutoff": 0.25, "oscModel": 2 }, "notes": { "oscModel": "Phaseshaper" } })");
+                                                      "values": { "cutoff": 0.25, "oscModel": "Phaseshaper", "switchModState": true },
+                                                      "notes": { "cutoff": "a note" } })");
     CHECK (preset.name == "Test" && preset.description == "a test", "name '%s'", preset.name.toRawUTF8());
     CHECK (preset.knob1 == "waveform" && preset.knob2 == "resonance", "knobs %s / %s", preset.knob1.toRawUTF8(), preset.knob2.toRawUTF8());
-    CHECK (preset.values.size() == 2 && preset.values[0].first == "cutoff" && preset.values[0].second == 0.25f
-           && preset.values[1].first == "oscModel" && preset.values[1].second == 2.0f, "values not parsed in order");
+    CHECK (preset.values.size() == 3 && preset.values[0].first == "cutoff" && preset.values[1].first == "oscModel"
+           && preset.values[2].first == "switchModState", "values not parsed in order");
 
     const auto bare = dfl::parseFactoryPreset (R"({ "name": "Bare" })");
     CHECK (bare.values.empty() && bare.knob1 == "cutoff" && bare.knob2 == "lfoDepth", "bare preset defaults");
 }
 
+static void testPresetValueResolution (JC303& p)
+{
+    // choice params take their display names, switches take true / false, numbers stay in the parameter's units
+    auto resolve = [&] (const char* id, const juce::var& v) { return dfl::resolvePresetValue (*find (p, id), v); };
+    CHECK (resolve ("oscModel", "Phaseshaper") == std::optional<float> (2.0f), "oscModel 'Phaseshaper' did not resolve to 2");
+    CHECK (resolve ("shaperMode", "Formant") == std::optional<float> (2.0f), "shaperMode 'Formant' did not resolve to 2");
+    CHECK (resolve ("oscModel", 1) == std::optional<float> (1.0f), "numeric choice index");
+    CHECK (resolve ("switchModState", true) == std::optional<float> (1.0f), "switch true");
+    CHECK (resolve ("switchModState", false) == std::optional<float> (0.0f), "switch false");
+    CHECK (resolve ("cutoff", 0.25) == std::optional<float> (0.25f), "float value");
+    CHECK (! resolve ("oscModel", "No Such Model").has_value(), "unknown choice name resolved");
+    CHECK (! resolve ("cutoff", "high").has_value(), "a name on a float param resolved");
+
+    p.setCurrentProgram (programIndex (p, "Formant Talk"));
+    CHECK (valueOf (p, "shaperMode") == 2.0f, "Formant Talk loads shaperMode %g", valueOf (p, "shaperMode"));
+    p.setCurrentProgram (0);
+}
 
 static void testProgramList (JC303& p)
 {
@@ -87,8 +106,12 @@ static void testPresetValuesInRange (JC303& p)
         for (auto& [id, v] : preset.values)
             if (auto* param = find (p, id))
             {
-                const float loaded = param->convertFrom0to1 (param->convertTo0to1 (v));
-                CHECK (std::abs (loaded - v) < 1e-3f, "preset '%s': %s = %g loads as %g", preset.name.toRawUTF8(), id.toRawUTF8(), v, loaded);
+                const auto value = dfl::resolvePresetValue (*param, v);
+                CHECK (value.has_value(), "preset '%s': %s = '%s' is not a valid value", preset.name.toRawUTF8(), id.toRawUTF8(),
+                       v.toString().toRawUTF8());
+                if (! value) continue;
+                const float loaded = param->convertFrom0to1 (param->convertTo0to1 (*value));
+                CHECK (std::abs (loaded - *value) < 1e-3f, "preset '%s': %s = %g loads as %g", preset.name.toRawUTF8(), id.toRawUTF8(), *value, loaded);
             }
 }
 
@@ -354,6 +377,7 @@ int main (int argc, char** argv)
         testProgramList (p);
         testPresetIdsExist (p);
         testPresetValuesInRange (p);
+        testPresetValueResolution (p);
         testPresetKnobsExist (p);
         testInitResetsSoundOnly (p);
         testHoover (p);

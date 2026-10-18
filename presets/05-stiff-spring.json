@@ -1,16 +1,13 @@
 {
     "name": "Stiff Spring",
-    "description": "Stiff Spring: Hi-Fi diode ladder with stiff rungs: the resonance's pitch rises with its level, so loud (accented) notes chirp upward. The mod wheel plays the tension.",
-    "knobs": [
-        "filterTension",
-        "resonance"
-    ],
+    "description": "Hi-Fi diode ladder with stiff rungs: the resonance's pitch rises with its level, so loud (accented) notes chirp upward. The mod wheel plays the tension.",
+    "knobs": ["filterTension", "resonance"],
     "values": {
-        "switchModState": 1,
-        "filterType": 1,
-        "filterQuality": 1,
+        "switchModState": true,
+        "filterType": "Spicy",
+        "filterQuality": "Hi-Fi",
         "filterTension": 0.7,
-        "oscModel": 0,
+        "oscModel": "TB-303",
         "waveform": 0,
         "cutoff": 0.35,
         "resonance": 0.88,
@@ -24,8 +21,6 @@
         "softAttack": 0.35
     },
     "notes": {
-        "filterType": "Spicy",
-        "filterQuality": "Hi-Fi",
         "filterTension": "stiff: up to ~3 semitones higher when loud",
         "waveform": "saw",
         "cutoff": "640 Hz",

@@ -21,7 +21,7 @@ FactoryPreset parseFactoryPreset (const juce::String& json)
 
     if (auto* values = root["values"].getDynamicObject())
         for (auto& [id, v] : values->getProperties())
-            preset.values.emplace_back (id.toString(), (float) v);
+            preset.values.emplace_back (id.toString(), v);
 
     return preset;
 }

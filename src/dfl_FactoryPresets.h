@@ -2,6 +2,7 @@
 
 #include <JuceHeader.h>
 
+#include <optional>
 #include <utility>
 #include <vector>
 
@@ -9,14 +10,14 @@ namespace dfl
 {
 
 // A factory sound, loaded from presets/*.json (built into the plugin, ordered by file name):
-// parameter ID -> value in the parameter's own units (choice index, 0/1 for bools, the raw value for floats).
+// parameter ID -> value: a choice name (or index), true / false for switches, the raw value for floats.
 // Every sound parameter not listed goes back to its default, so Init is empty.
 // knob1 / knob2 are the parameters on the two performance knobs; the mod wheel drives knob1.
 struct FactoryPreset
 {
     juce::String name;
     juce::String description;
-    std::vector<std::pair<juce::String, float>> values;
+    std::vector<std::pair<juce::String, juce::var>> values;
     juce::String knob1 = "cutoff";
     juce::String knob2 = "lfoDepth";
 };
@@ -25,6 +26,24 @@ struct FactoryPreset
 FactoryPreset parseFactoryPreset (const juce::String& json);
 
 const std::vector<FactoryPreset>& factoryPresets();
+
+/** A preset value in the parameter's own units, or nothing if it does not fit the parameter
+    (an unknown choice name, a name on a numeric parameter). */
+inline std::optional<float> resolvePresetValue (const juce::RangedAudioParameter& param, const juce::var& v)
+{
+    if (v.isString())
+    {
+        if (auto* choice = dynamic_cast<const juce::AudioParameterChoice*> (&param))
+            if (const int index = choice->choices.indexOf (v.toString()); index >= 0)
+                return (float) index;
+        return std::nullopt;
+    }
+    if (v.isBool())
+        return (bool) v ? 1.0f : 0.0f;
+    if (v.isInt() || v.isInt64() || v.isDouble())
+        return (float) (double) v;
+    return std::nullopt;
+}
 
 // the performance knob assignments, kept as properties of the plugin state
 inline const juce::Identifier performanceKnobIds[2] { "perfKnob1", "perfKnob2" };
@@ -48,7 +67,8 @@ inline void applyFactoryPreset (const juce::Array<juce::AudioProcessorParameter*
         float normalised = param->getDefaultValue();
         for (auto& [id, v] : preset.values)
             if (param->getParameterID() == id)
-                normalised = param->convertTo0to1 (v);
+                if (const auto value = resolvePresetValue (*param, v))
+                    normalised = param->convertTo0to1 (*value);
 
         param->beginChangeGesture();
         param->setValueNotifyingHost (normalised);

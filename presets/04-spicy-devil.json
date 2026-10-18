@@ -1,14 +1,11 @@
 {
     "name": "Spicy Devil",
-    "description": "Spicy Devil: Devil Fish-style square on the diode ladder, filter FM, accent sweep that builds over consecutive accents, long accent decay.",
-    "knobs": [
-        "filterFm",
-        "filterDrive"
-    ],
+    "description": "Devil Fish-style square on the diode ladder, filter FM, accent sweep that builds over consecutive accents, long accent decay.",
+    "knobs": ["filterFm", "filterDrive"],
     "values": {
-        "switchModState": 1,
-        "filterType": 1,
-        "oscModel": 0,
+        "switchModState": true,
+        "filterType": "Spicy",
+        "oscModel": "TB-303",
         "waveform": 1,
         "cutoff": 0.35,
         "resonance": 0.9,
@@ -25,12 +22,11 @@
         "accentDecay": 0.3,
         "normalDecay": 0.6,
         "slideTime": 0.5,
-        "modSlot3Source": 3,
-        "modSlot3Dest": 6,
+        "modSlot3Source": "Accent",
+        "modSlot3Dest": "Filter FM",
         "modSlot3Amount": 0.6
     },
     "notes": {
-        "filterType": "Spicy",
         "waveform": "square (Circuit model, the default)",
         "cutoff": "640 Hz",
         "decay": "190 ms",
@@ -41,8 +37,6 @@
         "accentDecay": "920 ms long accent decay",
         "normalDecay": "1.8 s",
         "slideTime": "180 ms",
-        "modSlot3Source": "Accent",
-        "modSlot3Dest": "Filter FM",
         "modSlot3Amount": "+0.3 FM depth on accents"
     }
 }

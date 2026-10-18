@@ -1,17 +1,14 @@
 {
     "name": "Ripple Lead",
-    "description": "Ripple Lead: drifting Ripple Saw with the LFO sweeping the ripple, -2 oct sub, ARP 4075 filter.",
-    "knobs": [
-        "shapeDrift",
-        "lfoDepth"
-    ],
+    "description": "Drifting Ripple Saw with the LFO sweeping the ripple, -2 oct sub, ARP 4075 filter.",
+    "knobs": ["shapeDrift", "lfoDepth"],
     "values": {
-        "switchModState": 1,
-        "oscModel": 2,
-        "shaperMode": 1,
+        "switchModState": true,
+        "oscModel": "Phaseshaper",
+        "shaperMode": "Ripple Saw",
         "waveform": 0.5,
         "shapeDrift": 0.6,
-        "filterType": 7,
+        "filterType": "Oddity",
         "cutoff": 0.75,
         "resonance": 0.35,
         "envmod": 0.25,
@@ -22,29 +19,23 @@
         "slideTime": 0.5,
         "subOscGain": 0.3,
         "subOscBlend": 0,
-        "lfoDestination": 10,
-        "lfoWaveform": 0,
+        "lfoDestination": "Waveform",
+        "lfoWaveform": "Triangle",
         "lfoRate": 0.25,
         "lfoDepth": 0.25,
-        "modSlot3Source": 4,
-        "modSlot3Dest": 8,
+        "modSlot3Source": "Key",
+        "modSlot3Dest": "Decay",
         "modSlot3Amount": -0.4
     },
     "notes": {
-        "oscModel": "Phaseshaper",
-        "shaperMode": "Ripple Saw",
         "waveform": "mid ripple",
-        "filterType": "Oddity",
         "decay": "600 ms",
         "normalDecay": "2.7 s",
         "softAttack": "30 ms",
         "subOscBlend": "-2 octaves (25% pulse)",
-        "lfoDestination": "Waveform (ripple amount)",
-        "lfoWaveform": "Triangle",
+        "lfoDestination": "ripple amount",
         "lfoRate": "0.4 Hz",
         "lfoDepth": "shape 0.25..0.75",
-        "modSlot3Source": "Key",
-        "modSlot3Dest": "Decay",
         "modSlot3Amount": "high notes decay faster"
     }
 }

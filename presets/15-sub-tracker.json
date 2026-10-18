@@ -1,15 +1,12 @@
 {
     "name": "Sub Tracker",
-    "description": "Sub Tracker: heavy -1 oct sub under a square, filter fully keytracked, decay shortens up the keyboard.",
-    "knobs": [
-        "subOscGain",
-        "subOscBlend"
-    ],
+    "description": "Heavy -1 oct sub under a square, filter fully keytracked, decay shortens up the keyboard.",
+    "knobs": ["subOscGain", "subOscBlend"],
     "values": {
-        "switchModState": 1,
-        "oscModel": 0,
+        "switchModState": true,
+        "oscModel": "TB-303",
         "waveform": 1,
-        "filterType": 3,
+        "filterType": "JuneBug",
         "cutoff": 0.3,
         "resonance": 0.3,
         "envmod": 0.4,
@@ -21,24 +18,19 @@
         "accentDecay": 0.15,
         "softAttack": 0.3,
         "slideTime": 0.4,
-        "modSlot3Source": 4,
-        "modSlot3Dest": 0,
+        "modSlot3Source": "Key",
+        "modSlot3Dest": "Cutoff",
         "modSlot3Amount": 1,
-        "modSlot4Source": 4,
-        "modSlot4Dest": 8,
+        "modSlot4Source": "Key",
+        "modSlot4Dest": "Decay",
         "modSlot4Amount": -0.5
     },
     "notes": {
         "waveform": "square",
-        "filterType": "JuneBug",
         "decay": "380 ms",
         "subOscBlend": "-1 octave (square)",
         "softAttack": "5 ms",
-        "modSlot3Source": "Key",
-        "modSlot3Dest": "Cutoff",
         "modSlot3Amount": "100% tracking (+/- 2 oct over +/- 2 oct)",
-        "modSlot4Source": "Key",
-        "modSlot4Dest": "Decay",
         "modSlot4Amount": "an octave up halves the decay"
     }
 }

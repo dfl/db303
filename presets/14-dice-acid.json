@@ -1,14 +1,11 @@
 {
     "name": "Dice Acid",
-    "description": "Dice Acid: every note rolls its own cutoff and decay; an S&H LFO flickers the saw/square blend.",
-    "knobs": [
-        "modSlot3Amount",
-        "modSlot4Amount"
-    ],
+    "description": "Every note rolls its own cutoff and decay; an S&H LFO flickers the saw/square blend.",
+    "knobs": ["modSlot3Amount", "modSlot4Amount"],
     "values": {
-        "switchModState": 1,
-        "filterType": 1,
-        "oscModel": 0,
+        "switchModState": true,
+        "filterType": "Spicy",
+        "oscModel": "TB-303",
         "waveform": 0.3,
         "cutoff": 0.4,
         "resonance": 0.75,
@@ -18,29 +15,23 @@
         "normalDecay": 0.4,
         "accentDecay": 0.06,
         "slideTime": 0.2,
-        "lfoWaveform": 4,
+        "lfoWaveform": "Random",
         "lfoRate": 0.6,
-        "lfoDestination": 10,
+        "lfoDestination": "Waveform",
         "lfoDepth": 0.3,
-        "modSlot3Source": 5,
-        "modSlot3Dest": 0,
+        "modSlot3Source": "Random",
+        "modSlot3Dest": "Cutoff",
         "modSlot3Amount": 0.25,
-        "modSlot4Source": 5,
-        "modSlot4Dest": 8,
+        "modSlot4Source": "Random",
+        "modSlot4Dest": "Decay",
         "modSlot4Amount": 0.5
     },
     "notes": {
-        "filterType": "Spicy",
         "waveform": "LFO swings this 0..0.6",
         "slideTime": "74 ms",
-        "lfoWaveform": "Random (S&H)",
+        "lfoWaveform": "S&H",
         "lfoRate": "2.4 Hz",
-        "lfoDestination": "Waveform",
-        "modSlot3Source": "Random",
-        "modSlot3Dest": "Cutoff",
         "modSlot3Amount": "+/- 0.5 oct per note",
-        "modSlot4Source": "Random",
-        "modSlot4Dest": "Decay",
         "modSlot4Amount": "+/- 1 octave of decay time per note"
     }
 }

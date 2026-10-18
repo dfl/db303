@@ -1,18 +1,15 @@
 {
     "name": "Formant Talk",
-    "description": "Formant Talk: VPS formant swept down from ~h10 to h3 on every note (\"yow\"), split into two peaks, drifting. The formant does the vowel, so the filter stays open.",
-    "knobs": [
-        "waveform",
-        "shaperSplit"
-    ],
+    "description": "VPS formant swept down from ~h10 to h3 on every note (\"yow\"), split into two peaks, drifting. The formant does the vowel, so the filter stays open.",
+    "knobs": ["waveform", "shaperSplit"],
     "values": {
-        "switchModState": 1,
-        "oscModel": 2,
-        "shaperMode": 2,
+        "switchModState": true,
+        "oscModel": "Phaseshaper",
+        "shaperMode": "Formant",
         "waveform": 0.07,
         "shaperSplit": 0.25,
         "shapeDrift": 0.4,
-        "filterType": 1,
+        "filterType": "Spicy",
         "cutoff": 0.8,
         "resonance": 0.25,
         "envmod": 0.15,
@@ -21,27 +18,21 @@
         "accent": 0.5,
         "normalDecay": 0.6,
         "slideTime": 0.4,
-        "modSlot3Source": 7,
-        "modSlot3Dest": 10,
+        "modSlot3Source": "Env+",
+        "modSlot3Dest": "Waveform",
         "modSlot3Amount": 0.5,
-        "modSlot4Source": 4,
-        "modSlot4Dest": 0,
+        "modSlot4Source": "Key",
+        "modSlot4Dest": "Cutoff",
         "modSlot4Amount": 0.5
     },
     "notes": {
-        "oscModel": "Phaseshaper",
-        "shaperMode": "Formant",
         "waveform": "formant at h3 at rest",
         "shaperSplit": "two peaks, close together",
-        "filterType": "Spicy",
         "decay": "475 ms: also the formant sweep time",
         "accentDecay": "475 ms, same sweep on accents",
         "normalDecay": "1.8 s",
         "slideTime": "145 ms",
-        "modSlot3Source": "Env+",
-        "modSlot3Dest": "Waveform (formant)",
-        "modSlot3Amount": "up to ~h10 at note-on",
-        "modSlot4Source": "Key",
-        "modSlot4Dest": "Cutoff"
+        "modSlot3Dest": "formant",
+        "modSlot3Amount": "up to ~h10 at note-on"
     }
 }

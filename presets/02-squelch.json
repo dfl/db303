@@ -1,14 +1,11 @@
 {
     "name": "Squelch",
-    "description": "Squelch: stock-timed saw acid on the Spicy diode ladder; accents also push the resonance up.",
-    "knobs": [
-        "cutoff",
-        "accentSweep"
-    ],
+    "description": "Stock-timed saw acid on the Spicy diode ladder; accents also push the resonance up.",
+    "knobs": ["cutoff", "accentSweep"],
     "values": {
-        "switchModState": 1,
-        "filterType": 1,
-        "oscModel": 0,
+        "switchModState": true,
+        "filterType": "Spicy",
+        "oscModel": "TB-303",
         "waveform": 0,
         "cutoff": 0.3,
         "resonance": 0.8,
@@ -20,13 +17,11 @@
         "slideTime": 0.16,
         "softAttack": 0.35,
         "resTrim": 0.98,
-        "modSlot3Source": 3,
-        "modSlot3Dest": 4,
+        "modSlot3Source": "Accent",
+        "modSlot3Dest": "Resonance",
         "modSlot3Amount": 0.2
     },
     "notes": {
-        "filterType": "Spicy",
-        "oscModel": "TB-303",
         "waveform": "saw",
         "cutoff": "575 Hz",
         "decay": "300 ms",
@@ -35,8 +30,6 @@
         "slideTime": "60 ms, stock",
         "softAttack": "7.5 ms",
         "resTrim": "a hot unit: more loop gain",
-        "modSlot3Source": "Accent",
-        "modSlot3Dest": "Resonance",
         "modSlot3Amount": "+10 points on accented notes"
     }
 }
